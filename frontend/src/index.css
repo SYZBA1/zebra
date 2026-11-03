@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 200 6% 96%;
+    --foreground: 200 20% 27%;
+
+    --card: 200 12% 95%;
+    --card-foreground: 200 20% 27%;
+
+    --popover: 200 12% 95%;
+    --popover-foreground: 200 20% 27%;
+
+    --primary: 24 100% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 8% 90%;
+    --secondary-foreground: 200 20% 27%;
+
+    --muted: 200 6% 88%;
+    --muted-foreground: 200 8% 50%;
+
+    --accent: 200 8% 90%;
+    --accent-foreground: 200 20% 27%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 8% 82%;
+    --input: 200 8% 82%;
+    --ring: 24 100% 54%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 200 6% 94%;
+    --sidebar-foreground: 200 20% 27%;
+    --sidebar-primary: 24 100% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 8% 90%;
+    --sidebar-accent-foreground: 200 20% 27%;
+    --sidebar-border: 200 8% 85%;
+    --sidebar-ring: 24 100% 54%;
+
+    /* Custom zebra tokens */
+    --zebra-stripe: 200 20% 27%;
+    --zebra-stripe-alt: 0 0% 100%;
+    --zebra-muted: 200 8% 50%;
+    --zebra-highlight: 24 100% 45%;
+  }
+
+  .dark {
+    --background: 200 20% 27%;
+    --foreground: 0 0% 90%;
+
+    --card: 200 18% 22%;
+    --card-foreground: 0 0% 90%;
+
+    --popover: 200 18% 22%;
+    --popover-foreground: 0 0% 90%;
+
+    --primary: 24 100% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 15% 30%;
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 200 15% 30%;
+    --muted-foreground: 200 8% 75%;
+
+    --accent: 200 15% 30%;
+    --accent-foreground: 0 0% 90%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 12% 35%;
+    --input: 200 12% 35%;
+    --ring: 24 100% 54%;
+    --sidebar-background: 200 20% 24%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 24 100% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 15% 28%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 200 12% 30%;
+    --sidebar-ring: 24 100% 54%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .zebra-stripes {
+    background: repeating-linear-gradient(
+      -45deg,
+      hsl(var(--primary)) 0px,
+      hsl(var(--primary)) 12px,
+      hsl(var(--primary-foreground)) 12px,
+      hsl(var(--primary-foreground)) 24px
+    );
+  }
+
+  .text-gradient-zebra {
+    background: linear-gradient(135deg, hsl(var(--foreground)), hsl(var(--muted-foreground)), hsl(var(--foreground)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

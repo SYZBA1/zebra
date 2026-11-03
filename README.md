@@ -1,73 +1,249 @@
-# Welcome to your Lovable project
+# Zebra Business Path 🦓
 
-## Project info
+An AI-powered business planning platform built for Ethiopian entrepreneurs. Zebra helps users create feasibility studies, business plans, company profiles and more — guided by a 6-pillar framework, fully bilingual (English & Amharic), and connected to a knowledge base of Ethiopian market data.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+---
 
-## How can I edit this code?
+## Tech Stack
 
-There are several ways of editing your application.
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui |
+| Backend | Node.js + Express + TypeScript |
+| Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth (JWT) |
+| AI | Google Gemini 2.5 Flash (direct API) |
+| Embeddings / RAG | VoyageAI voyage-3 (1024-dim vectors) |
+| Email | Resend (direct API) |
+| Exports | jsPDF + docx |
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Project Structure
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+zebra-bp/
+├── frontend/                  React + Vite frontend application
+│   ├── src/
+│   │   ├── components/        Reusable UI components
+│   │   ├── pages/             Page components (one per route)
+│   │   ├── hooks/             Custom React hooks
+│   │   ├── lib/               Business logic, outlines, export helpers
+│   │   └── integrations/      Supabase client (auth only)
+│   ├── public/                Static assets
+│   ├── .env.example           Frontend environment template
+│   └── package.json
+│
+├── backend/                   Node.js + Express API server
+│   ├── src/
+│   │   ├── routes/            API route handlers
+│   │   │   ├── chat.ts        POST /api/chat
+│   │   │   ├── draft.ts       POST /api/draft
+│   │   │   ├── health.ts      POST /api/health-diagnose
+│   │   │   ├── feedback.ts    POST /api/feedback
+│   │   │   └── knowledge.ts   POST /api/knowledge/ingest
+│   │   ├── middleware/        Auth and admin guards
+│   │   │   ├── authMiddleware.ts
+│   │   │   └── adminMiddleware.ts
+│   │   ├── lib/               Shared helpers
+│   │   │   ├── ai.ts          Google Gemini API wrapper
+│   │   │   ├── db.ts          PostgreSQL connection pool
+│   │   │   ├── embeddings.ts  VoyageAI wrapper
+│   │   │   └── email.ts       Resend email wrapper
+│   │   └── index.ts           Express app entry point
+│   ├── scripts/
+│   │   └── create-admin.ts    Local CLI to create admin users
+│   ├── archive/               Retired Supabase edge functions (reference only)
+│   ├── .env.example           Backend environment template
+│   └── package.json
+│
+├── supabase/
+│   └── migrations/            Database schema history (21 migration files)
+│
+└── README.md
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Getting Started
 
-**Use GitHub Codespaces**
+### Prerequisites
+- Node.js 18+ (download from nodejs.org)
+- A Supabase project (supabase.com)
+- A Google Gemini API key (aistudio.google.com)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+### Step 1 — Clone and install
 
-This project is built with:
+```bash
+# Install frontend dependencies
+cd frontend
+npm install
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Install backend dependencies
+cd ../backend
+npm install
+```
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Step 2 — Set up environment variables
 
-## Can I connect a custom domain to my Lovable project?
+**Frontend:**
+```bash
+cd frontend
+copy .env.example .env
+```
 
-Yes, you can!
+Edit `frontend/.env`:
+```
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+VITE_API_URL=http://localhost:3001
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+**Backend:**
+```bash
+cd backend
+copy .env.example .env
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Edit `backend/.env`:
+```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_supabase_publishable_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_secret_key
+DATABASE_URL=postgresql://postgres.xxx:PASSWORD@aws-0-xxx.pooler.supabase.com:6543/postgres
+GEMINI_API_KEY=your_gemini_api_key
+VOYAGE_API_KEY=your_voyage_key
+RESEND_API_KEY=your_resend_key
+FEEDBACK_RECIPIENT_EMAIL=admin@example.com
+FRONTEND_URL=http://localhost:8080
+PORT=3001
+```
+
+---
+
+### Step 3 — Start the servers
+
+Open **two terminals**:
+
+**Terminal 1 — Backend:**
+```bash
+cd backend
+npm run dev
+```
+✅ You should see: `Zebra BP backend running on http://localhost:3001`
+
+**Terminal 2 — Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+✅ You should see: `Local: http://localhost:8080`
+
+Then open your browser at **http://localhost:8080**
+
+---
+
+### Step 4 — Create the first admin user
+
+Run this locally only — it is never exposed as an HTTP endpoint:
+
+```bash
+cd backend
+npx tsx scripts/create-admin.ts admin@example.com yourSecurePassword123
+```
+
+Then log in at `/admin/login`.
+
+---
+
+## API Routes
+
+| Method | Route | Auth Required | Description |
+|---|---|---|---|
+| GET | `/api/health` | None | Server health check |
+| POST | `/api/chat` | User login | AI chat assistant (bilingual) |
+| POST | `/api/draft` | User login | AI document section writer |
+| POST | `/api/health-diagnose` | User login | Business health diagnostic |
+| POST | `/api/feedback` | None | Submit visitor feedback |
+| POST | `/api/knowledge/ingest` | Admin only | Ingest knowledge base documents |
+
+---
+
+## Environment Variables Reference
+
+### Frontend (`frontend/.env`)
+
+| Variable | Where to get it |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase → Settings → API → Project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase → Settings → API → Publishable key |
+| `VITE_API_URL` | Your backend URL (default: `http://localhost:3001`) |
+
+### Backend (`backend/.env`)
+
+| Variable | Where to get it |
+|---|---|
+| `SUPABASE_URL` | Supabase → Settings → API → Project URL |
+| `SUPABASE_ANON_KEY` | Supabase → Settings → API → Publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → Secret key |
+| `DATABASE_URL` | Supabase → Settings → Database → Connection string → URI |
+| `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com) → Get API key |
+| `VOYAGE_API_KEY` | [voyageai.com](https://voyageai.com) → Dashboard → API Keys |
+| `RESEND_API_KEY` | [resend.com](https://resend.com) → API Keys |
+| `FEEDBACK_RECIPIENT_EMAIL` | Email address to receive feedback notifications |
+| `FRONTEND_URL` | Frontend origin for CORS (default: `http://localhost:8080`) |
+| `PORT` | Backend server port (default: `3001`) |
+
+---
+
+## Document Types Supported
+
+| Document | Description |
+|---|---|
+| Feasibility Study | Market viability, financial projections, risk analysis |
+| Business Plan | Company strategy, financial plan, growth roadmap |
+| Business Proposal | Opportunity framing, scope, expected value |
+| Company Profile | Organization overview, mission, core services |
+| Strategic Business Development | Growth engine, B2B partnerships, market entry |
+| Organizational Structure | Hierarchy, reporting lines, key roles |
+| Performance Tracking | KPIs, delivery timelines, client retention |
+| Business Health Analysis | Cash flow, profit margins, risk matrix |
+
+---
+
+## Security Notes
+
+- All user data is isolated via Supabase Row Level Security (RLS)
+- The `/api/knowledge/ingest` endpoint requires admin role
+- The `backend/scripts/create-admin.ts` script runs locally only — never exposed via HTTP
+- Service role key is only used server-side, never in the frontend
+- JWT tokens are verified on every protected API request
+
+---
+
+## Weekly Development Plan
+
+This project follows a 12-week improvement roadmap:
+
+| Week | Focus |
+|---|---|
+| 1 | Technical audit and schedule |
+| 2 | Core workflow stability |
+| 3 | AI generation reliability |
+| 4 | UX and bilingual fixes |
+| 5 | Security and data access |
+| 6 | Monitoring and analytics |
+| 7 | Performance and storage |
+| 8 | Commercial readiness |
+| 9 | Regression and scale testing |
+| 10 | Release candidate |
+| 11 | Feedback release |
+| 12 | Production readiness |
+
+---
+
+Built by the Zebra Business Path team.
