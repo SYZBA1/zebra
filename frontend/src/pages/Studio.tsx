@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Languages, Sun, Moon, FileText, TrendingUp, Building2, Activity, HeartPulse, ClipboardList, Settings, Trash2, Sparkles, Plus, ChevronRight } from "lucide-react";
+import { ArrowLeft, Languages, Sun, Moon, FileText, TrendingUp, Building2, Activity, HeartPulse, ClipboardList, Settings, Trash2, Sparkles, Plus, ChevronRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import ProjectSetup from "@/components/studio/ProjectSetup";
@@ -8,8 +8,9 @@ import EditorView from "@/components/studio/EditorView";
 import HealthDiagnostic from "@/components/studio/HealthDiagnostic";
 import ZIQuestionFlow from "@/components/studio/ZIQuestionFlow";
 import { useProfile } from "@/hooks/useProfile";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import { createProject, deleteProject, listProjects, restoreProject, type ProjectRecord } from "@/lib/projects-api";
 import { getStoredTheme, setStoredTheme, type Theme } from "@/lib/theme";
 import {
   AlertDialog,
@@ -27,18 +28,7 @@ import zebraLogoLight from "@/assets/zebra-logo-light.png";
 type StudioView = "home" | "setup" | "templates" | "editor" | "intro" | "health" | "zi-flow";
 type DocumentType = "feasibility" | "business-plan" | "business-proposal" | "company-profile" | "strategic-business" | "org-structure" | "performance-tracking" | "business-health";
 
-interface SavedProject {
-  id: string;
-  name: string;
-  sector: string;
-  type: string;
-  document_type: string;
-  contents: Record<string, string>;
-  custom_titles: Record<string, string>;
-  language: string;
-  service_description: string;
-  updated_at: string;
-}
+type SavedProject = ProjectRecord;
 
 const DOC_TOOLS: { type: DocumentType; icon: any; label: string; labelAm: string; desc: string; descAm: string }[] = [
   { type: "feasibility", icon: FileText, label: "Feasibility Study", labelAm: "የተግባራዊነት ጥናት", desc: "Market viability, financial projections, and operational feasibility.", descAm: "የገበያ ተገቢነት፣ የፋይናንስ ትንበያ እና ተግባራዊነት።" },
@@ -128,6 +118,7 @@ const Studio = () => {
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+  const [deletedProjects, setDeletedProjects] = useState<SavedProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [initialContents, setInitialContents] = useState<Record<string, string>>({});
   const [initialCustomTitles, setInitialCustomTitles] = useState<Record<string, string>>({});
@@ -154,23 +145,28 @@ const Studio = () => {
     if (!userId) return;
     const load = async () => {
       setLoadingProjects(true);
-      const { data } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("user_id", userId)
-        .order("updated_at", { ascending: false });
-      if (data) {
-        setSavedProjects(data as any);
-        // If no proposition passed via route state, pick the most recent saved one
+      try {
+        const projects = await listProjects(true);
+        const active = projects.filter((project) => project.deleted_at === null);
+        setSavedProjects(active);
+        setDeletedProjects(projects.filter((project) => project.deleted_at !== null));
         if (!incomingProposition) {
-          const latestProp = (data as any[]).find((p: any) => p.document_type === "business_proposition");
-          if (latestProp?.contents) setActiveProposition(latestProp.contents as Record<string, string>);
+          const latestProp = active.find((project) => project.document_type === "business_proposition");
+          if (latestProp?.contents) setActiveProposition(latestProp.contents);
         }
+      } catch (error) {
+        console.error("Failed to load projects:", error);
+        toast({
+          title: language === "en" ? "Error" : "ስህተት",
+          description: language === "en" ? "Failed to load projects." : "ፕሮጀክቶችን መጫን አልተሳካም።",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingProjects(false);
       }
-      setLoadingProjects(false);
     };
     load();
-  }, [userId]);
+  }, [incomingProposition, language, toast, userId]);
 
   useEffect(() => {
     const state = location.state as any;
@@ -205,19 +201,31 @@ const Studio = () => {
     setSector(sec);
 
     // If "list" (free writing), start with empty outline
-    const startContents = introChoice === "list" ? {} : {};
+    const startContents: Record<string, string> = {};
     setInitialContents(startContents);
     setInitialCustomTitles({});
 
-    if (userId) {
-      const { data, error } = await supabase.from("projects").insert({
-        user_id: userId, name, sector: sec, type: introChoice === "list" ? "free" : "outline",
-        document_type: documentType, language, contents: {} as any, custom_titles: {} as any,
+    if (!userId) {
+      toast({ title: t("Error", "ስህተት"), description: t("Please sign in again before creating a project.", "ፕሮጀክት ከመፍጠርዎ በፊት እንደገና ይግቡ።"), variant: "destructive" });
+      return;
+    }
+    try {
+      const project = await createProject({
+        name,
+        sector: sec,
+        type: introChoice === "list" ? "free" : "outline",
+        document_type: documentType,
+        language,
+        contents: startContents,
+        custom_titles: {},
         service_description: serviceDesc,
-        phase1_answers: (incomingPhase1 ?? {}) as any,
-      } as any).select("id").single();
-      if (data) setCurrentProjectId(data.id);
-      if (error) toast({ title: "Error", description: "Failed to create project", variant: "destructive" });
+        phase1_answers: incomingPhase1 ?? {},
+      });
+      setCurrentProjectId(project.id);
+    } catch (error) {
+      console.error("Failed to create project:", error);
+      toast({ title: t("Error", "ስህተት"), description: t("Failed to create project. Please try again.", "ፕሮጀክት መፍጠር አልተሳካም። እባክዎ እንደገና ይሞክሩ።"), variant: "destructive" });
+      return;
     }
     setView("editor");
   };
@@ -240,14 +248,41 @@ const Studio = () => {
     setView("editor");
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    const { error } = await supabase.from("projects").delete().eq("id", projectId);
-    if (error) {
-      toast({ title: "Error", description: "Failed to delete project", variant: "destructive" });
-    } else {
-      setSavedProjects((prev) => prev.filter((p) => p.id !== projectId));
-      toast({ title: t("Deleted", "ተሰርዟል"), description: t("Project removed.", "ፕሮጀክት ተወግዷል።") });
+  const handleDeleteProject = async (project: SavedProject) => {
+    if (!userId) return;
+    let deleted: SavedProject;
+    try {
+      deleted = await deleteProject(project.id);
+    } catch (error) {
+      console.error("Failed to move project to Recently Deleted:", error);
+      toast({ title: t("Error", "ስህተት"), description: t("Failed to delete project.", "ፕሮጀክቱን መሰረዝ አልተሳካም።"), variant: "destructive" });
+      return;
     }
+
+    setSavedProjects((prev) => prev.filter((savedProject) => savedProject.id !== project.id));
+    setDeletedProjects((prev) => [deleted, ...prev]);
+    toast({
+      title: t("Moved to Recently Deleted", "ወደ በቅርቡ የተሰረዙ ተወስዷል"),
+      description: t("You can restore this project from Recently Deleted.", "ይህን ፕሮጀክት ከበቅርቡ የተሰረዙ መመለስ ይችላሉ።"),
+      duration: 8000,
+      action: <ToastAction altText={t("Undo deletion", "ስረዛን መልስ")} onClick={() => void handleRestoreProject(project)}>{t("Undo", "መልስ")}</ToastAction>,
+    });
+  };
+
+  const handleRestoreProject = async (project: SavedProject) => {
+    if (!userId) return;
+    let restored: SavedProject;
+    try {
+      restored = await restoreProject(project.id);
+    } catch (error) {
+      console.error("Failed to restore project:", error);
+      toast({ title: t("Error", "ስህተት"), description: t("Failed to restore project.", "ፕሮጀክቱን መመለስ አልተሳካም።"), variant: "destructive" });
+      return;
+    }
+
+    setDeletedProjects((prev) => prev.filter((deletedProject) => deletedProject.id !== project.id));
+    setSavedProjects((prev) => [restored, ...prev].sort((a, b) => b.updated_at.localeCompare(a.updated_at)));
+    toast({ title: t("Project restored", "ፕሮጀክቱ ተመልሷል"), description: t(`"${project.name}" is available in your projects again.`, `"${project.name}" እንደገና በፕሮጀክቶችዎ ውስጥ ይገኛል።`) });
   };
 
   const handleFromFeasibility = (project: SavedProject) => {
@@ -298,21 +333,27 @@ const Studio = () => {
     setInitialCustomTitles({});
     setIntroChoice("outline");
 
-    if (userId) {
-      const { data, error } = await supabase.from("projects").insert({
-        user_id: userId,
+    if (!userId) {
+      toast({ title: t("Error", "ስህተት"), description: t("Please sign in again before creating a project.", "ፕሮጀክት ከመፍጠርዎ በፊት እንደገና ይግቡ።"), variant: "destructive" });
+      return;
+    }
+    try {
+      const project = await createProject({
         name,
         sector,
         type: "zi",
         document_type: documentType,
         language,
-        contents: contents as any,
-        custom_titles: {} as any,
+        contents,
+        custom_titles: {},
         service_description: answers.solution || answers.identity?.oneLiner || "",
-        phase1_answers: (incomingPhase1 ?? {}) as any,
-      } as any).select("id").single();
-      if (data) setCurrentProjectId(data.id);
-      if (error) toast({ title: "Error", description: "Failed to save project", variant: "destructive" });
+        phase1_answers: incomingPhase1 ?? {},
+      });
+      setCurrentProjectId(project.id);
+    } catch (error) {
+      console.error("Failed to save project:", error);
+      toast({ title: t("Error", "ስህተት"), description: t("Failed to save project.", "ፕሮጀክቱን ማስቀመጥ አልተሳካም።"), variant: "destructive" });
+      return;
     }
 
     setView("editor");
@@ -471,18 +512,47 @@ const Studio = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>{t("Delete Project?", "ፕሮጀክት ይሰረዝ?")}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                {t(`Are you sure you want to delete "${p.name}"? This cannot be undone.`, `"${p.name}" ን ለመሰረዝ እርግጠኛ ነዎት? ይህ ሊቀለበስ አይችልም።`)}
+                                {t(`Move "${p.name}" to Recently Deleted? You can restore it later.`, `"${p.name}" ወደ በቅርቡ የተሰረዙ ይወሰድ? በኋላ መመለስ ይችላሉ።`)}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>{t("Cancel", "ይቅር")}</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteProject(p.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              <AlertDialogAction onClick={() => void handleDeleteProject(p)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                                 {t("Delete", "ሰርዝ")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!loadingProjects && deletedProjects.length > 0 && (
+              <div className="mt-8">
+                <div className="border-t border-border mb-4" />
+                <h3 className="text-base font-display font-bold mb-1">
+                  {t("Recently Deleted", "በቅርቡ የተሰረዙ")}
+                </h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {t("Restore a project to make it available in your project list again.", "ፕሮጀክትን ወደ ዝርዝርዎ ለመመለስ ይጫኑ።")}
+                </p>
+                <div className="space-y-2">
+                  {deletedProjects.map((project) => (
+                    <div key={project.id} className="w-full border border-border rounded-sm p-3 sm:p-4 flex items-center justify-between gap-2 opacity-80">
+                      <div className="min-w-0">
+                        <p className="font-display font-bold text-sm truncate">{project.name}</p>
+                        <p className="text-[10px] font-mono text-muted-foreground">
+                          {project.sector} · {docTypeLabel(project.document_type || "feasibility")}
+                          {project.deleted_at && ` · ${t("Deleted", "ተሰርዟል")} ${new Date(project.deleted_at).toLocaleDateString()}`}
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm" className="shrink-0" onClick={() => void handleRestoreProject(project)}>
+                        <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                        {t("Restore", "መልስ")}
+                      </Button>
                     </div>
                   ))}
                 </div>

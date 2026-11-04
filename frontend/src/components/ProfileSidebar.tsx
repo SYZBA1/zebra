@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { User, Bell, Briefcase, FileText, ShoppingBag, LogOut, Check, Calendar } from "lucide-react";
+import { listProjects } from "@/lib/projects-api";
 
 interface ProfileSidebarProps {
   children: React.ReactNode;
@@ -66,8 +67,13 @@ const ProfileSidebar = ({ children }: ProfileSidebarProps) => {
         setEditPhone((prof as any).phone_number || "");
       }
 
-      const { data: projs } = await supabase.from("projects").select("*").eq("user_id", session.user.id).order("updated_at", { ascending: false });
-      if (projs) setProjects(projs as any);
+      try {
+        const projs = await listProjects();
+        setProjects(projs);
+      } catch (error) {
+        console.error("Failed to load profile projects:", error);
+        toast.error("Could not load projects. Please try again.");
+      }
 
       const { data: notifs } = await supabase.from("notifications").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(20);
       if (notifs) setNotifications(notifs as any);

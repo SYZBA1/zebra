@@ -766,6 +766,7 @@ export type Database = {
           contents: Json
           created_at: string
           custom_titles: Json
+          deleted_at: string | null
           document_type: string
           id: string
           language: string
@@ -783,6 +784,7 @@ export type Database = {
           contents?: Json
           created_at?: string
           custom_titles?: Json
+          deleted_at?: string | null
           document_type?: string
           id?: string
           language?: string
@@ -800,6 +802,7 @@ export type Database = {
           contents?: Json
           created_at?: string
           custom_titles?: Json
+          deleted_at?: string | null
           document_type?: string
           id?: string
           language?: string

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { createProject } from "@/lib/projects-api";
 import { useToast } from "@/hooks/use-toast";
 
 const FIELDS = [
@@ -51,36 +51,19 @@ const BusinessProposition = () => {
     }
     setIsSaving(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) {
-        toast({ title: "Error", description: "Authentication required", variant: "destructive" });
-        setIsSaving(false);
-        return;
-      }
-      const { data, error } = await supabase
-        .from("projects")
-        .insert({
-          user_id: userId,
-          name: form.businessName,
-          sector: phase1Answers.q1_sector || form.businessName,
-          type: "proposition",
-          document_type: "business_proposition",
-          language,
-          contents: { ...form, phase1_answers: phase1Answers },
-          custom_titles: {},
-          service_description: form.solution,
-        } as any)
-        .select("id")
-        .single();
-      if (error) {
-        console.error(error);
-        toast({ title: "Error", description: "Could not save proposition", variant: "destructive" });
-        setIsSaving(false);
-        return;
-      }
+      const project = await createProject({
+        name: form.businessName,
+        sector: phase1Answers.q1_sector || form.businessName,
+        type: "proposition",
+        document_type: "business_proposition",
+        language,
+        contents: form,
+        custom_titles: {},
+        service_description: form.solution,
+        phase1_answers: phase1Answers,
+      });
       toast({ title: "Saved!", description: "Business Proposition saved. Redirecting to Studio…" });
-      navigate("/studio", { state: { propositionId: data?.id, proposition: form, phase1Answers } });
+      navigate("/studio", { state: { propositionId: project.id, proposition: form, phase1Answers } });
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" });

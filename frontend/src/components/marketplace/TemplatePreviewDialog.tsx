@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Star, BadgeCheck, Download, Edit3, Loader2, ListTree } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { createProject } from "@/lib/projects-api";
 import { toast } from "sonner";
 import { parseTemplateDocument, buildContentsFromTemplate } from "@/lib/parse-template";
 import { exportPDF } from "@/lib/export-document";
@@ -111,24 +112,26 @@ export default function TemplatePreviewDialog({ template, open, onOpenChange }: 
       performance: "performance-tracking",
       business_health: "business-health",
     };
-    const { data, error } = await supabase.from("projects").insert({
-      user_id: session.user.id,
+    try {
+      const project = await createProject({
       name: `${template.title} — My Copy`,
       sector: template.sector,
       type: "free",
       template_id: template.id,
       document_type: docTypeMap[template.document_type] || "feasibility",
-      contents: contents as any,
-      custom_titles: customTitles as any,
+      contents,
+      custom_titles: customTitles,
       language: "en",
-    }).select("id").single();
-    setBusy(null);
-    if (error || !data) {
-      toast.error(error?.message || "Could not create project");
+      });
+      setBusy(null);
+      onOpenChange(false);
+      navigate("/studio", { state: { resumeProjectId: project.id } });
+    } catch (error) {
+      setBusy(null);
+      console.error("Could not create project from template:", error);
+      toast.error(error instanceof Error ? error.message : "Could not create project");
       return;
     }
-    onOpenChange(false);
-    navigate("/studio", { state: { resumeProjectId: data.id } });
   };
 
   return (

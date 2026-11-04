@@ -10,8 +10,8 @@ An AI-powered business planning platform built for Ethiopian entrepreneurs. Zebr
 |---|---|
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui |
 | Backend | Node.js + Express + TypeScript |
-| Database | Supabase (PostgreSQL) |
-| Auth | Supabase Auth (JWT) |
+| Database | PostgreSQL, accessed by the Node.js API using `pg` |
+| Auth | Supabase Auth (JWT), verified by the Node.js API |
 | AI | Google Gemini 2.5 Flash (direct API) |
 | Embeddings / RAG | VoyageAI voyage-3 (1024-dim vectors) |
 | Email | Resend (direct API) |
@@ -28,8 +28,9 @@ zebra-bp/
 │   │   ├── components/        Reusable UI components
 │   │   ├── pages/             Page components (one per route)
 │   │   ├── hooks/             Custom React hooks
-│   │   ├── lib/               Business logic, outlines, export helpers
-│   │   └── integrations/      Supabase client (auth only)
+│   │   ├── lib/               Business logic and API clients
+│   │   │   └── projects-api.ts Authenticated Node API client for project data
+│   │   └── integrations/      Supabase Auth client
 │   ├── public/                Static assets
 │   ├── .env.example           Frontend environment template
 │   └── package.json
@@ -41,7 +42,8 @@ zebra-bp/
 │   │   │   ├── draft.ts       POST /api/draft
 │   │   │   ├── health.ts      POST /api/health-diagnose
 │   │   │   ├── feedback.ts    POST /api/feedback
-│   │   │   └── knowledge.ts   POST /api/knowledge/ingest
+│   │   │   ├── knowledge.ts   POST /api/knowledge/ingest
+│   │   │   └── projects.ts    Authenticated PostgreSQL project CRUD / restore
 │   │   ├── middleware/        Auth and admin guards
 │   │   │   ├── authMiddleware.ts
 │   │   │   └── adminMiddleware.ts
@@ -125,7 +127,13 @@ PORT=3001
 
 ---
 
-### Step 3 — Start the servers
+### Step 3 — Apply database migrations
+
+Apply the SQL files in `supabase/migrations/` to the PostgreSQL database configured by the backend's `DATABASE_URL` before starting the application. In particular, apply `20261105000001_add_project_soft_delete.sql` before using Recently Deleted/Restore.
+
+The browser uses Supabase Auth to obtain a JWT. Project records are read and written through the Node.js API, which verifies that JWT and uses the PostgreSQL connection configured by `DATABASE_URL`. `DATABASE_URL` may target any compatible PostgreSQL server; the existing deployment may still use Supabase-hosted PostgreSQL until a separate database migration is planned. Keep `DATABASE_URL` server-side; never expose it as a `VITE_` variable.
+
+### Step 4 — Start the servers
 
 Open **two terminals**:
 
@@ -147,7 +155,7 @@ Then open your browser at **http://localhost:8080**
 
 ---
 
-### Step 4 — Create the first admin user
+### Step 5 — Create the first admin user
 
 Run this locally only — it is never exposed as an HTTP endpoint:
 
@@ -190,7 +198,7 @@ Then log in at `/admin/login`.
 | `SUPABASE_URL` | Supabase → Settings → API → Project URL |
 | `SUPABASE_ANON_KEY` | Supabase → Settings → API → Publishable key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → Secret key |
-| `DATABASE_URL` | Supabase → Settings → Database → Connection string → URI |
+| `DATABASE_URL` | PostgreSQL provider → connection URI (backend only) |
 | `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com) → Get API key |
 | `VOYAGE_API_KEY` | [voyageai.com](https://voyageai.com) → Dashboard → API Keys |
 | `RESEND_API_KEY` | [resend.com](https://resend.com) → API Keys |

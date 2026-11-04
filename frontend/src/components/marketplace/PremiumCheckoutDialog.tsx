@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Smartphone, Building2, CreditCard, Copy, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { createProject } from "@/lib/projects-api";
 import { toast } from "sonner";
 import type { MarketTemplate } from "./TemplatePreviewDialog";
 
@@ -107,16 +108,19 @@ export default function PremiumCheckoutDialog({ template, open, onOpenChange, on
       company_profile: "org-structure", org_structure: "org-structure",
       performance: "performance-tracking", business_health: "business-health",
     };
-    const { data, error } = await supabase.from("projects").insert({
-      user_id: session.user.id,
+    try {
+      const project = await createProject({
       name: `${template.title} — My Copy`,
       sector: template.sector, type: "free", template_id: template.id,
       document_type: docTypeMap[template.document_type] || "feasibility",
-      contents: contents as any, custom_titles: customTitles as any, language: "en",
-    }).select("id").single();
-    if (error || !data) { toast.error(error?.message || "Failed"); return; }
-    onSuccess(); reset();
-    navigate("/studio", { state: { resumeProjectId: data.id } });
+      contents, custom_titles: customTitles, language: "en",
+      });
+      onSuccess(); reset();
+      navigate("/studio", { state: { resumeProjectId: project.id } });
+    } catch (error) {
+      console.error("Could not create project from premium template:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to create project");
+    }
   };
 
   return (

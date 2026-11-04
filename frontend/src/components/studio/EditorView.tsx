@@ -13,6 +13,7 @@ import { COMPANY_PROFILE_OUTLINE } from "@/lib/company-profile-outline";
 import { BUSINESS_PROPOSAL_OUTLINE } from "@/lib/business-proposal-outline";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { updateProject } from "@/lib/projects-api";
 import { exportPDF, exportDOCX } from "@/lib/export-document";
 import WritingProgress from "./WritingProgress";
 import PrintPreview from "./PrintPreview";
@@ -183,13 +184,13 @@ const EditorView = ({ projectName, sector, documentType, onBack, projectId, init
 
   const saveToDb = useCallback(async (c: Record<string, string>, ct: Record<string, string>) => {
     if (!projectId) return;
-    await supabase.from("projects").update({
-      contents: c as any,
-      custom_titles: ct as any,
-      language,
-      updated_at: new Date().toISOString(),
-    }).eq("id", projectId);
-  }, [projectId, language]);
+    try {
+      await updateProject(projectId, { contents: c, custom_titles: ct, language });
+    } catch (error) {
+      console.error("Failed to save project:", error);
+      toast({ title: "Save failed", description: "Your changes could not be saved. Please try again.", variant: "destructive" });
+    }
+  }, [projectId, language, toast]);
 
   useEffect(() => {
     if (!projectId) return;

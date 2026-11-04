@@ -11,6 +11,7 @@ import draftRouter    from "./routes/draft";
 import healthRouter   from "./routes/health";
 import feedbackRouter from "./routes/feedback";
 import knowledgeRouter from "./routes/knowledge";
+import projectsRouter from "./routes/projects";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -50,6 +51,7 @@ app.use("/api", draftRouter);
 app.use("/api", healthRouter);
 app.use("/api", feedbackRouter);
 app.use("/api", knowledgeRouter);
+app.use("/api", projectsRouter);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {
