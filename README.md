@@ -127,11 +127,9 @@ PORT=3001
 
 ---
 
-### Step 3 — Apply database migrations
+### Step 3 — Set up PostgreSQL
 
-Apply the SQL files in `supabase/migrations/` to the PostgreSQL database configured by the backend's `DATABASE_URL` before starting the application. In particular, apply `20261105000001_add_project_soft_delete.sql` before using Recently Deleted/Restore.
-
-The browser uses Supabase Auth to obtain a JWT. Project records are read and written through the Node.js API, which verifies that JWT and uses the PostgreSQL connection configured by `DATABASE_URL`. `DATABASE_URL` may target any compatible PostgreSQL server; the existing deployment may still use Supabase-hosted PostgreSQL until a separate database migration is planned. Keep `DATABASE_URL` server-side; never expose it as a `VITE_` variable.
+Set `DATABASE_URL` in the backend environment and run `backend/migrations/001_projects.sql` once. Supabase handles login; project data goes through the Node.js API to PostgreSQL. Keep the database URL secret, and migrate existing project data before switching the live app.
 
 ### Step 4 — Start the servers
 
