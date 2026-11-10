@@ -116,7 +116,9 @@ Edit `backend/.env`:
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_supabase_publishable_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_secret_key
-DATABASE_URL=postgresql://postgres.xxx:PASSWORD@aws-0-xxx.pooler.supabase.com:6543/postgres
+DATABASE_URL=postgresql://username:password@host:port/database
+DATABASE_SSL=true
+DATABASE_TLS_REJECT_UNAUTHORIZED=true
 GEMINI_API_KEY=your_gemini_api_key
 VOYAGE_API_KEY=your_voyage_key
 RESEND_API_KEY=your_resend_key
@@ -125,11 +127,13 @@ FRONTEND_URL=http://localhost:8080
 PORT=3001
 ```
 
+For Railway or other managed PostgreSQL providers, set `DATABASE_URL` to the provider’s direct connection string and keep the TLS verification enabled unless you intentionally need a self-signed local database.
+
 ---
 
 ### Step 3 — Set up PostgreSQL
 
-Set `DATABASE_URL` in the backend environment and run `backend/migrations/001_projects.sql` once. Supabase handles login; project data goes through the Node.js API to PostgreSQL. Keep the database URL secret, and migrate existing project data before switching the live app.
+Set `DATABASE_URL` in the backend environment to your managed PostgreSQL provider’s connection string, then run `backend/migrations/001_projects.sql` once. Supabase handles login; project data goes through the Node.js API to PostgreSQL. Keep the database URL secret, and migrate existing project data before switching the live app.
 
 ### Step 4 — Start the servers
 
