@@ -32,7 +32,9 @@ export async function embedQuery(text: string): Promise<number[] | null> {
       return null;
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      data?: Array<{ embedding?: number[] }>;
+    };
     return data.data?.[0]?.embedding ?? null;
   } catch (err) {
     console.error("Voyage embed exception:", err);
@@ -64,6 +66,8 @@ export async function embedBatch(
     throw new Error(`Voyage batch embed error ${response.status}: ${errText}`);
   }
 
-  const data = await response.json();
-  return data.data.map((d: { embedding: number[] }) => d.embedding);
+  const data = (await response.json()) as {
+    data: Array<{ embedding: number[] }>;
+  };
+  return data.data.map((d) => d.embedding);
 }
