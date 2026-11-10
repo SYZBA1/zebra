@@ -82,7 +82,17 @@ export async function generateContent(
     throw new Error(`Gemini API error ${response.status}: ${errText.slice(0, 300)}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as {
+    candidates?: Array<{
+      content?: {
+        parts?: Array<{
+          text?: string;
+          functionCall?: { name: string; args?: Record<string, unknown> };
+        }>;
+      };
+      finishReason?: string;
+    }>;
+  };
   const candidate = data.candidates?.[0];
   const part = candidate?.content?.parts?.[0];
 
