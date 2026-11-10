@@ -11,6 +11,20 @@ declare global {
 }
 
 /**
+ * Verifies a Supabase JWT and returns the matching user payload.
+ */
+export async function getAuthenticatedUser(
+  token: string,
+  supabaseClient = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  )
+) {
+  return supabaseClient.auth.getUser(token);
+}
+
+/**
  * Verifies the Supabase JWT from the Authorization: Bearer header.
  * Attaches req.user = { id, email } on success.
  * Returns 401 if missing or invalid.
@@ -29,14 +43,7 @@ export async function authMiddleware(
   const token = authHeader.slice(7);
 
   try {
-    // Create client inside handler so env vars are guaranteed loaded
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: `Bearer ${token}` } } }
-    );
-
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { user }, error } = await getAuthenticatedUser(token);
 
     if (error || !user) {
       res.status(401).json({ error: "Invalid or expired token" });
