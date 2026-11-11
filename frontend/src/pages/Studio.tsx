@@ -11,6 +11,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { createProject, deleteProject, listProjects, restoreProject, type ProjectRecord } from "@/lib/projects-api";
+import type { OutlineNode } from "@/lib/feasibility-outline";
 import { getStoredTheme, setStoredTheme, type Theme } from "@/lib/theme";
 import {
   AlertDialog,
@@ -29,6 +30,35 @@ type StudioView = "home" | "setup" | "templates" | "editor" | "intro" | "health"
 type DocumentType = "feasibility" | "business-plan" | "business-proposal" | "company-profile" | "strategic-business" | "org-structure" | "performance-tracking" | "business-health";
 
 type SavedProject = ProjectRecord;
+
+function parseOutline(value: unknown): OutlineNode[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const parseNodes = (items: unknown[]): OutlineNode[] | undefined => {
+    const nodes: OutlineNode[] = [];
+    for (const item of items) {
+      if (typeof item !== "object" || item === null || Array.isArray(item)) return undefined;
+      const candidate = item as Record<string, unknown>;
+      if (typeof candidate.id !== "string" || typeof candidate.title !== "string") return undefined;
+      if (candidate.titleAm !== undefined && typeof candidate.titleAm !== "string") return undefined;
+      if (candidate.content !== undefined && typeof candidate.content !== "string") return undefined;
+      if (candidate.children !== undefined && !Array.isArray(candidate.children)) return undefined;
+
+      const children = candidate.children === undefined ? undefined : parseNodes(candidate.children);
+      if (candidate.children !== undefined && !children) return undefined;
+      nodes.push({
+        id: candidate.id,
+        title: candidate.title,
+        ...(typeof candidate.titleAm === "string" ? { titleAm: candidate.titleAm } : {}),
+        ...(typeof candidate.content === "string" ? { content: candidate.content } : {}),
+        ...(children ? { children } : {}),
+      });
+    }
+    return nodes;
+  };
+
+  return parseNodes(value);
+}
 
 const DOC_TOOLS: { type: DocumentType; icon: any; label: string; labelAm: string; desc: string; descAm: string }[] = [
   { type: "feasibility", icon: FileText, label: "Feasibility Study", labelAm: "የተግባራዊነት ጥናት", desc: "Market viability, financial projections, and operational feasibility.", descAm: "የገበያ ተገቢነት፣ የፋይናንስ ትንበያ እና ተግባራዊነት።" },
@@ -122,6 +152,7 @@ const Studio = () => {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [initialContents, setInitialContents] = useState<Record<string, string>>({});
   const [initialCustomTitles, setInitialCustomTitles] = useState<Record<string, string>>({});
+  const [initialOutline, setInitialOutline] = useState<OutlineNode[] | undefined>();
   const [initialLanguage, setInitialLanguage] = useState<"en" | "am">("en");
   const [showFromFeasibility, setShowFromFeasibility] = useState(false);
   const [introChoice, setIntroChoice] = useState<"outline" | "list" | null>(null);
@@ -204,6 +235,8 @@ const Studio = () => {
     const startContents: Record<string, string> = {};
     setInitialContents(startContents);
     setInitialCustomTitles({});
+    setInitialOutline(undefined);
+    setInitialLanguage(language);
 
     if (!userId) {
       toast({ title: t("Error", "ስህተት"), description: t("Please sign in again before creating a project.", "ፕሮጀክት ከመፍጠርዎ በፊት እንደገና ይግቡ።"), variant: "destructive" });
@@ -243,6 +276,7 @@ const Studio = () => {
     setCurrentProjectId(project.id);
     setInitialContents(project.contents || {});
     setInitialCustomTitles(project.custom_titles || {});
+    setInitialOutline(parseOutline(project.outline));
     setInitialLanguage((project.language || "en") as "en" | "am");
     setIntroChoice(project.type === "free" ? "list" : "outline");
     setView("editor");
@@ -331,6 +365,8 @@ const Studio = () => {
     setSector(sector);
     setInitialContents(contents);
     setInitialCustomTitles({});
+    setInitialOutline(undefined);
+    setInitialLanguage(language);
     setIntroChoice("outline");
 
     if (!userId) {
@@ -628,6 +664,7 @@ const Studio = () => {
           projectId={currentProjectId || undefined}
           initialContents={initialContents}
           initialCustomTitles={initialCustomTitles}
+          initialOutline={initialOutline}
           initialLanguage={initialLanguage}
           useEmptyOutline={introChoice === "list"}
         />

@@ -39,6 +39,7 @@ interface EditorViewProps {
   projectId?: string;
   initialContents?: Record<string, string>;
   initialCustomTitles?: Record<string, string>;
+  initialOutline?: OutlineNode[];
   initialLanguage?: Language;
   useEmptyOutline?: boolean;
 }
@@ -110,7 +111,7 @@ const NodeItem = ({
   );
 };
 
-const EditorView = ({ projectName, sector, documentType, onBack, projectId, initialContents, initialCustomTitles, initialLanguage, useEmptyOutline }: EditorViewProps) => {
+const EditorView = ({ projectName, sector, documentType, onBack, projectId, initialContents, initialCustomTitles, initialOutline, initialLanguage, useEmptyOutline }: EditorViewProps) => {
   const [activeNodeId, setActiveNodeId] = useState("cover");
   const [contents, setContents] = useState<Record<string, string>>(initialContents || {});
   const [language, setLanguage] = useState<Language>(initialLanguage || "en");
@@ -121,6 +122,7 @@ const EditorView = ({ projectName, sector, documentType, onBack, projectId, init
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
 
   const outlineMap: Record<DocumentType, OutlineNode[]> = {
     "feasibility": FEASIBILITY_OUTLINE,
@@ -137,6 +139,7 @@ const EditorView = ({ projectName, sector, documentType, onBack, projectId, init
 
   // If free writing mode, start with just a cover page; otherwise use full outline
   const [outline, setOutline] = useState<OutlineNode[]>(() => {
+    if (initialOutline?.length) return initialOutline;
     if (useEmptyOutline) {
       return [{ id: "cover", title: "Cover Page Details", titleAm: "የሽፋን ገጽ ዝርዝሮች" }];
     }
@@ -182,22 +185,40 @@ const EditorView = ({ projectName, sector, documentType, onBack, projectId, init
     toast({ title: language === "en" ? "Section deleted" : "ክፍል ተሰርዟል" });
   };
 
-  const saveToDb = useCallback(async (c: Record<string, string>, ct: Record<string, string>) => {
-    if (!projectId) return;
-    try {
-      await updateProject(projectId, { contents: c, custom_titles: ct, language });
-    } catch (error) {
+  const saveToDb = useCallback((c: Record<string, string>, ct: Record<string, string>, currentOutline: OutlineNode[]) => {
+    if (!projectId) return Promise.resolve(true);
+    const save = saveQueue.current
+      .catch(() => undefined)
+      .then(() => updateProject(projectId, { contents: c, custom_titles: ct, outline: currentOutline, language }))
+      .then(() => undefined);
+    saveQueue.current = save;
+    return save.then(
+      () => true,
+      (error: unknown) => {
       console.error("Failed to save project:", error);
       toast({ title: "Save failed", description: "Your changes could not be saved. Please try again.", variant: "destructive" });
-    }
+        return false;
+      }
+    );
   }, [projectId, language, toast]);
 
   useEffect(() => {
     if (!projectId) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => saveToDb(contents, customTitles), 2000);
+    saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
+      void saveToDb(contents, customTitles, outline);
+    }, 2000);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [contents, customTitles, saveToDb, projectId]);
+  }, [contents, customTitles, outline, saveToDb, projectId]);
+
+  const handleBack = async () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    if (await saveToDb(contents, customTitles, outline)) onBack();
+  };
 
   const handleAIDraft = async () => {
     if (!activeNode) return;
@@ -329,7 +350,7 @@ const EditorView = ({ projectName, sector, documentType, onBack, projectId, init
             <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden shrink-0" onClick={() => setSidebarOpen(true)}>
               <Menu className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8 hidden md:flex shrink-0"><ArrowLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => void handleBack()} className="h-8 w-8 hidden md:flex shrink-0"><ArrowLeft className="h-4 w-4" /></Button>
             <div className="min-w-0">
               <p className="font-mono text-[9px] sm:text-[10px] tracking-[0.15em] uppercase text-muted-foreground">Section {activeNodeId}</p>
               <h3 className="font-display font-bold text-sm sm:text-lg tracking-tight leading-tight truncate">{activeTitle}</h3>
