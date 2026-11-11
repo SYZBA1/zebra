@@ -45,10 +45,11 @@ export function exportPDF(
       @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400&display=swap');
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: 'Noto Sans Ethiopic', 'Space Grotesk', sans-serif; color: #222; line-height: 1.7; }
+      @page { margin: 18mm 16mm; }
 
       .cover-page {
-        height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
-        page-break-after: always; border: 3px solid #364954; margin: 20px; padding: 60px; position: relative;
+        min-height: 240mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        break-after: page; page-break-after: always; border: 3px solid #364954; margin: 0; padding: 40px; position: relative;
       }
       .cover-page h1 { font-size: 30px; color: #364954; margin-bottom: 8px; font-weight: 700; }
       .cover-page .subtitle { font-size: 14px; letter-spacing: 3px; text-transform: uppercase; color: #FF7A1A; margin-bottom: 30px; font-family: 'IBM Plex Mono', monospace; }
@@ -61,12 +62,15 @@ export function exportPDF(
       .toc-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #ccc; font-size: 13px; }
       .toc-item .num { color: #999; font-size: 11px; margin-right: 10px; font-family: 'IBM Plex Mono', monospace; }
 
-      .section { margin-bottom: 24px; padding: 0 40px; page-break-inside: avoid; }
-      .section h2 { font-size: 18px; color: #364954; border-bottom: 2px solid #FF7A1A; padding-bottom: 6px; margin-bottom: 14px; }
+      .section { margin-bottom: 24px; break-inside: auto; page-break-inside: auto; }
+      .section h2 { break-after: avoid-page; page-break-after: avoid; font-size: 18px; color: #364954; border-bottom: 2px solid #FF7A1A; padding-bottom: 6px; margin-bottom: 14px; }
       .section .num { color: #999; font-size: 11px; margin-right: 6px; font-family: 'IBM Plex Mono', monospace; }
-      .section p { font-size: 13px; white-space: pre-wrap; margin-bottom: 10px; text-align: justify; }
+      .section p { font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; orphans: 3; widows: 3; margin-bottom: 10px; text-align: justify; }
 
-      @media print { body { padding: 0; } .cover-page { margin: 0; } }
+      @media print {
+        body { padding: 0; }
+        .cover-page { min-height: 0; height: calc(100vh - 36mm); }
+      }
     </style>
   </head><body>`;
 

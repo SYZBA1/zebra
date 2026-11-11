@@ -47,8 +47,9 @@ const PrintPreview = ({ projectName, sector, documentType, outline, contents, cu
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400&display=swap');
           * { margin: 0; padding: 0; box-sizing: border-box; }
+          @page { margin: 18mm 16mm; }
           body { font-family: 'Space Grotesk', sans-serif; color: #333; line-height: 1.6; }
-          .cover { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always; border: 2px solid #364954; margin: 20px; padding: 60px; }
+          .cover { min-height: 240mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; break-after: page; page-break-after: always; border: 2px solid #364954; margin: 0; padding: 40px; }
           .cover img { width: 80px; margin-bottom: 40px; }
           .cover h1 { font-size: 32px; margin-bottom: 12px; color: #364954; }
           .cover .sector { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: #FF7A1A; margin-bottom: 40px; }
@@ -57,11 +58,14 @@ const PrintPreview = ({ projectName, sector, documentType, outline, contents, cu
           .toc h2 { font-size: 24px; margin-bottom: 20px; color: #364954; }
           .toc-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dotted #ccc; font-size: 14px; }
           .toc-item span:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #999; margin-right: 12px; }
-          .section { padding: 40px; page-break-inside: avoid; }
-          .section h2 { font-size: 20px; color: #364954; border-bottom: 2px solid #FF7A1A; padding-bottom: 8px; margin-bottom: 16px; }
+          .section { break-inside: auto; page-break-inside: auto; }
+          .section h2 { break-after: avoid-page; page-break-after: avoid; font-size: 20px; color: #364954; border-bottom: 2px solid #FF7A1A; padding-bottom: 8px; margin-bottom: 16px; }
           .section .id { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #999; }
-          .section p { margin-bottom: 12px; font-size: 14px; white-space: pre-wrap; }
-          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          .section p { margin-bottom: 12px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; orphans: 3; widows: 3; }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .cover { min-height: 0 !important; height: calc(100vh - 36mm) !important; }
+          }
         </style>
       </head>
       <body>${printRef.current.innerHTML}</body>
@@ -100,7 +104,7 @@ const PrintPreview = ({ projectName, sector, documentType, outline, contents, cu
             </div>
 
             {/* Table of Contents */}
-            <div style={{ pageBreakAfter: "always", padding: "40px" }}>
+            <div className="toc" style={{ pageBreakAfter: "always", padding: "40px" }}>
               <h2 style={{ fontSize: "24px", marginBottom: "20px", color: "#364954" }}>Table of Contents</h2>
               {tocEntries.map((node) => {
                 const title = customTitles[node.id] || (language === "am" && node.titleAm ? node.titleAm : node.title);
@@ -121,7 +125,7 @@ const PrintPreview = ({ projectName, sector, documentType, outline, contents, cu
               if (!content && node.id !== "cover") return null;
               const title = customTitles[node.id] || (language === "am" && node.titleAm ? node.titleAm : node.title);
               return (
-                <div key={node.id} style={{ padding: "40px", pageBreakInside: "avoid" }}>
+                <div key={node.id} className="section">
                   <h2 style={{ fontSize: "20px", color: "#364954", borderBottom: "2px solid #FF7A1A", paddingBottom: "8px", marginBottom: "16px" }}>
                     <span style={{ fontFamily: "monospace", fontSize: "11px", color: "#999", marginRight: "8px" }}>{node.id}.</span>
                     {title}
