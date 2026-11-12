@@ -42,10 +42,11 @@ function parseOutline(value: unknown): OutlineNode[] | undefined {
       if (typeof candidate.id !== "string" || typeof candidate.title !== "string") return undefined;
       if (candidate.titleAm !== undefined && typeof candidate.titleAm !== "string") return undefined;
       if (candidate.content !== undefined && typeof candidate.content !== "string") return undefined;
-      if (candidate.children !== undefined && !Array.isArray(candidate.children)) return undefined;
+      const childItems = candidate.children;
+      if (childItems !== undefined && !Array.isArray(childItems)) return undefined;
 
-      const children = candidate.children === undefined ? undefined : parseNodes(candidate.children);
-      if (candidate.children !== undefined && !children) return undefined;
+      const children = Array.isArray(childItems) ? parseNodes(childItems) : undefined;
+      if (Array.isArray(childItems) && !children) return undefined;
       nodes.push({
         id: candidate.id,
         title: candidate.title,
