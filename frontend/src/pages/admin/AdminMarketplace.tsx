@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Trash2, Loader2, Check, X, Download, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type MarketplaceTemplateUpdate = Database["public"]["Tables"]["marketplace_templates"]["Update"];
 
 type Row = {
   id: string;
@@ -173,16 +176,19 @@ export default function AdminMarketplace() {
     try {
       const { data: userRes } = await supabase.auth.getUser();
       const reviewerId = userRes.user?.id || null;
-      const payload: Record<string, any> = {
+      const payload: MarketplaceTemplateUpdate = {
         review_status: status,
         reviewed_at: new Date().toISOString(),
         reviewed_by_user_id: reviewerId,
         review_note: notes[row.id] || null,
         is_verified: status === "approved",
       };
+      const isUpdateField = (field: string): field is keyof MarketplaceTemplateUpdate =>
+        Object.prototype.hasOwnProperty.call(payload, field);
 
       let updateError: any = null;
-      for (let i = 0; i < Object.keys(payload).length + 2; i++) {
+      const maxAttempts = Object.keys(payload).length + 2;
+      for (let i = 0; i < maxAttempts; i++) {
         const { error } = await supabase
           .from("marketplace_templates")
           .update(payload)
@@ -196,7 +202,7 @@ export default function AdminMarketplace() {
           break;
         }
         const missing = getMissingColumnName(error);
-        if (!missing || !(missing in payload)) {
+        if (!missing || !isUpdateField(missing)) {
           updateError = error;
           break;
         }
