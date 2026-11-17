@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, UploadCloud, FileText } from "lucide-react";
+import { isPendingAdminRow, isReviewReady } from "@/lib/marketplace-review";
 
 type DocType = "business_plan" | "feasibility" | "company_profile" | "org_structure" | "performance" | "business_health";
 
@@ -55,8 +56,8 @@ const getMissingColumnName = (err: any) => {
   return parts[parts.length - 1] || null;
 };
 
-const statusLabel = (status: string) => {
-  if (status === "under_review") return "Under Review (2h hold)";
+const statusLabel = (status: string, reviewReadyAt?: string | null) => {
+  if (status === "under_review") return isReviewReady(status, reviewReadyAt) ? "Ready for Admin" : "Under Review (2h hold)";
   if (status === "pending_admin") return "Pending Admin";
   if (status === "approved") return "Approved";
   if (status === "rejected") return "Rejected";
@@ -156,7 +157,7 @@ export default function ExpertMarketplace() {
   }, []);
 
   const pendingCount = useMemo(
-    () => rows.filter((r) => r.review_status === "under_review" || r.review_status === "pending_admin").length,
+    () => rows.filter((r) => isPendingAdminRow(r)).length,
     [rows]
   );
 
@@ -397,7 +398,7 @@ export default function ExpertMarketplace() {
                       <p className="font-medium">{row.title}</p>
                       <p className="text-xs text-muted-foreground">{row.sector} · {row.document_type}</p>
                     </div>
-                    <Badge variant={statusVariant(row.review_status)}>{statusLabel(row.review_status)}</Badge>
+                    <Badge variant={statusVariant(row.review_status)}>{statusLabel(row.review_status, row.review_ready_at)}</Badge>
                   </div>
 
                   <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-4">
