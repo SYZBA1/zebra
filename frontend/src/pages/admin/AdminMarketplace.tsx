@@ -247,7 +247,7 @@ export default function AdminMarketplace() {
     return r.review_status === "under_review" && (!r.review_ready_at || new Date(r.review_ready_at).getTime() <= Date.now());
   });
   const catalog = rows.filter((r) => r.review_status === "approved" || !r.review_status);
-  const underHoldCount = rows.filter(isActiveHold).lengt
+  const underHoldCount = rows.filter(isActiveHold).len
 
   return (
     <div className="space-y-4">
