@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { formatPurchaseStatus, isPendingPurchaseStatus } from "@/lib/purchase-status";
 
 interface Purchase {
   id: string;
@@ -47,10 +48,10 @@ export default function AdminPurchases() {
     load();
   };
 
-  const filtered = rows.filter(r => filter === "all" ? true : r.status === filter);
+  const filtered = rows.filter(r => filter === "all" ? true : filter === "pending" ? isPendingPurchaseStatus(r.status) : r.status === filter);
 
   const stats = {
-    pending: rows.filter(r => r.status === "pending").length,
+    pending: rows.filter(r => isPendingPurchaseStatus(r.status)).length,
     approved: rows.filter(r => r.status === "approved").length,
     revenue: rows.filter(r => r.status === "approved").reduce((s, r) => s + Number(r.amount_etb), 0),
   };
@@ -90,12 +91,12 @@ export default function AdminPurchases() {
                     <TableCell className="font-mono">ETB {Number(p.amount_etb).toFixed(0)}</TableCell>
                     <TableCell>
                       <Badge variant={p.status === "approved" ? "default" : p.status === "rejected" ? "destructive" : "secondary"} className="text-[10px]">
-                        {p.status}
+                        {formatPurchaseStatus(p.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</TableCell>
                     <TableCell>
-                      {p.status === "pending" && (
+                      {isPendingPurchaseStatus(p.status) && (
                         <div className="flex gap-1">
                           <Button size="sm" variant="ghost" onClick={() => updateStatus(p.id, "approved")} title="Approve">
                             <CheckCircle2 className="h-4 w-4 text-green-500" />
