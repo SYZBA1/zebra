@@ -33,6 +33,8 @@ type DocumentType = "feasibility" | "business-plan" | "strategic-business" | "or
 interface EditorViewProps {
   projectName: string;
   sector: string;
+  serviceDescription?: string | null;
+  phase1Answers?: Record<string, unknown> | null;
   documentType: DocumentType;
   onBack: () => void;
   projectId?: string;
@@ -109,7 +111,7 @@ const NodeItem = ({
   );
 };
 
-const EditorView = ({ projectName, sector, documentType, onBack, projectId, initialContents, initialCustomTitles, initialLanguage, useEmptyOutline }: EditorViewProps) => {
+const EditorView = ({ projectName, sector, serviceDescription, phase1Answers, documentType, onBack, projectId, initialContents, initialCustomTitles, initialLanguage, useEmptyOutline }: EditorViewProps) => {
   const [activeNodeId, setActiveNodeId] = useState("cover");
   const [contents, setContents] = useState<Record<string, string>>(initialContents || {});
   const [language, setLanguage] = useState<Language>(initialLanguage || "en");
@@ -205,7 +207,7 @@ const EditorView = ({ projectName, sector, documentType, onBack, projectId, init
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/draft-section`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ sectionId: activeNodeId, sectionTitle: activeTitle, projectName, sector, language, documentType, existingContent: currentContent || undefined }),
+        body: JSON.stringify({ sectionId: activeNodeId, sectionTitle: activeTitle, projectName, sector, serviceDescription, phase1Answers, language, documentType, existingContent: currentContent || undefined }),
       });
       if (!resp.ok) { const err = await resp.json().catch(() => ({ error: "Generation failed" })); toast({ title: "Error", description: err.error, variant: "destructive" }); return; }
       const reader = resp.body?.getReader();

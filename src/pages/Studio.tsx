@@ -10,6 +10,7 @@ import ZIQuestionFlow from "@/components/studio/ZIQuestionFlow";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { buildProjectPhase1Answers } from "@/lib/project-context";
 import { getStoredTheme, setStoredTheme, type Theme } from "@/lib/theme";
 import {
   AlertDialog,
@@ -37,6 +38,7 @@ interface SavedProject {
   custom_titles: Record<string, string>;
   language: string;
   service_description: string;
+  phase1_answers?: Record<string, unknown> | null;
   updated_at: string;
 }
 
@@ -123,6 +125,8 @@ const Studio = () => {
   const [view, setView] = useState<StudioView>("home");
   const [projectName, setProjectName] = useState("");
   const [sector, setSector] = useState("");
+  const [projectServiceDescription, setProjectServiceDescription] = useState("");
+  const [projectPhase1Answers, setProjectPhase1Answers] = useState<Record<string, unknown>>({});
   const [documentType, setDocumentType] = useState<DocumentType>("feasibility");
   const [language, setLanguage] = useState<"en" | "am">("en");
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
@@ -200,9 +204,17 @@ const Studio = () => {
   // After format choice, create project and go to editor
   const handleIntroConfirm = async () => {
     if (!pendingSetup) return;
-    const { name, sector: sec, serviceDesc } = pendingSetup;
+    const { name, sector: sectorName, serviceDesc, loc: setupLocation, scale: businessScale } = pendingSetup;
     setProjectName(name);
-    setSector(sec);
+    setSector(sectorName);
+    setProjectServiceDescription(serviceDesc);
+
+    const phase1Answers = buildProjectPhase1Answers(incomingPhase1, {
+      sector: sectorName,
+      location: setupLocation,
+      businessScale,
+    });
+    setProjectPhase1Answers(phase1Answers);
 
     // If "list" (free writing), start with empty outline
     const startContents = introChoice === "list" ? {} : {};
@@ -211,10 +223,10 @@ const Studio = () => {
 
     if (userId) {
       const { data, error } = await supabase.from("projects").insert({
-        user_id: userId, name, sector: sec, type: introChoice === "list" ? "free" : "outline",
+        user_id: userId, name, sector: sectorName, type: introChoice === "list" ? "free" : "outline",
         document_type: documentType, language, contents: {} as any, custom_titles: {} as any,
         service_description: serviceDesc,
-        phase1_answers: (incomingPhase1 ?? {}) as any,
+        phase1_answers: phase1Answers as any,
       } as any).select("id").single();
       if (data) setCurrentProjectId(data.id);
       if (error) toast({ title: "Error", description: "Failed to create project", variant: "destructive" });
@@ -231,6 +243,8 @@ const Studio = () => {
   const handleResumeProject = (project: SavedProject) => {
     setProjectName(project.name);
     setSector(project.sector);
+    setProjectServiceDescription(project.service_description || "");
+    setProjectPhase1Answers(project.phase1_answers || {});
     setDocumentType((project.document_type || "feasibility") as DocumentType);
     setCurrentProjectId(project.id);
     setInitialContents(project.contents || {});
@@ -294,6 +308,9 @@ const Studio = () => {
 
     setProjectName(name);
     setSector(sector);
+    const serviceDescription = answers.solution || answers.identity?.oneLiner || "";
+    setProjectServiceDescription(serviceDescription);
+    setProjectPhase1Answers(incomingPhase1 ?? {});
     setInitialContents(contents);
     setInitialCustomTitles({});
     setIntroChoice("outline");
@@ -308,7 +325,7 @@ const Studio = () => {
         language,
         contents: contents as any,
         custom_titles: {} as any,
-        service_description: answers.solution || answers.identity?.oneLiner || "",
+        service_description: serviceDescription,
         phase1_answers: (incomingPhase1 ?? {}) as any,
       } as any).select("id").single();
       if (data) setCurrentProjectId(data.id);
@@ -553,6 +570,8 @@ const Studio = () => {
         <EditorView
           projectName={projectName}
           sector={sector}
+          serviceDescription={projectServiceDescription}
+          phase1Answers={projectPhase1Answers}
           documentType={documentType}
           onBack={() => setView("home")}
           projectId={currentProjectId || undefined}

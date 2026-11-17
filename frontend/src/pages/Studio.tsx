@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { createProject, deleteProject, listProjects, restoreProject, type ProjectRecord } from "@/lib/projects-api";
 import type { OutlineNode } from "@/lib/feasibility-outline";
+import { buildProjectPhase1Answers } from "@/lib/project-context";
 import { getStoredTheme, setStoredTheme, type Theme } from "@/lib/theme";
 import {
   AlertDialog,
@@ -144,6 +145,8 @@ const Studio = () => {
   const [view, setView] = useState<StudioView>("home");
   const [projectName, setProjectName] = useState("");
   const [sector, setSector] = useState("");
+  const [projectServiceDescription, setProjectServiceDescription] = useState("");
+  const [projectPhase1Answers, setProjectPhase1Answers] = useState<Record<string, unknown>>({});
   const [documentType, setDocumentType] = useState<DocumentType>("feasibility");
   const [language, setLanguage] = useState<"en" | "am">("en");
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
@@ -228,9 +231,17 @@ const Studio = () => {
   // After format choice, create project and go to editor
   const handleIntroConfirm = async () => {
     if (!pendingSetup) return;
-    const { name, sector: sec, serviceDesc } = pendingSetup;
+    const { name, sector: sectorName, serviceDesc, loc: setupLocation, scale: businessScale } = pendingSetup;
     setProjectName(name);
-    setSector(sec);
+    setSector(sectorName);
+    setProjectServiceDescription(serviceDesc);
+
+    const phase1Answers = buildProjectPhase1Answers(incomingPhase1, {
+      sector: sectorName,
+      location: setupLocation,
+      businessScale,
+    });
+    setProjectPhase1Answers(phase1Answers);
 
     // If "list" (free writing), start with empty outline
     const startContents: Record<string, string> = {};
@@ -246,14 +257,14 @@ const Studio = () => {
     try {
       const project = await createProject({
         name,
-        sector: sec,
+        sector: sectorName,
         type: introChoice === "list" ? "free" : "outline",
         document_type: documentType,
         language,
         contents: startContents,
         custom_titles: {},
         service_description: serviceDesc,
-        phase1_answers: incomingPhase1 ?? {},
+        phase1_answers: phase1Answers,
       });
       setCurrentProjectId(project.id);
     } catch (error) {
@@ -273,6 +284,8 @@ const Studio = () => {
   const handleResumeProject = (project: SavedProject) => {
     setProjectName(project.name);
     setSector(project.sector);
+    setProjectServiceDescription(project.service_description || "");
+    setProjectPhase1Answers(project.phase1_answers || {});
     setDocumentType((project.document_type || "feasibility") as DocumentType);
     setCurrentProjectId(project.id);
     setInitialContents(project.contents || {});
@@ -364,6 +377,9 @@ const Studio = () => {
 
     setProjectName(name);
     setSector(sector);
+    const serviceDescription = answers.solution || answers.identity?.oneLiner || "";
+    setProjectServiceDescription(serviceDescription);
+    setProjectPhase1Answers(incomingPhase1 ?? {});
     setInitialContents(contents);
     setInitialCustomTitles({});
     setInitialOutline(undefined);
@@ -383,7 +399,7 @@ const Studio = () => {
         language,
         contents,
         custom_titles: {},
-        service_description: answers.solution || answers.identity?.oneLiner || "",
+        service_description: serviceDescription,
         phase1_answers: incomingPhase1 ?? {},
       });
       setCurrentProjectId(project.id);
@@ -660,6 +676,8 @@ const Studio = () => {
         <EditorView
           projectName={projectName}
           sector={sector}
+          serviceDescription={projectServiceDescription}
+          phase1Answers={projectPhase1Answers}
           documentType={documentType}
           onBack={() => setView("home")}
           projectId={currentProjectId || undefined}
