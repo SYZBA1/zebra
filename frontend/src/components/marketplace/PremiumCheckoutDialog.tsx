@@ -9,6 +9,7 @@ import { Smartphone, Building2, CreditCard, Copy, Loader2, CheckCircle2 } from "
 import { supabase } from "@/integrations/supabase/client";
 import { createProject } from "@/lib/projects-api";
 import { toast } from "sonner";
+import { getPurchaseStatus, isValidTransactionRef, normalizeTransactionRef } from "@/lib/premium-checkout";
 import type { MarketTemplate } from "./TemplatePreviewDialog";
 
 interface Props {
@@ -47,8 +48,9 @@ export default function PremiumCheckoutDialog({ template, open, onOpenChange, on
   };
 
   const submitPayment = async () => {
-    if (txRef.trim().length < 6) {
-      toast.error("Please enter a valid Transaction ID");
+    const normalizedRef = normalizeTransactionRef(txRef);
+    if (!isValidTransactionRef(normalizedRef)) {
+      toast.error("Please enter a valid Transaction ID (8+ letters/numbers, no repeated characters).");
       return;
     }
     const { data: { session } } = await supabase.auth.getSession();
@@ -56,17 +58,16 @@ export default function PremiumCheckoutDialog({ template, open, onOpenChange, on
 
     setSubmitting(true);
 
-    // Auto-validation rule (mock): >=8 alphanumeric chars and not all same char.
-    const ref = txRef.trim().toUpperCase();
-    const looksValid = /^[A-Z0-9]{8,}$/.test(ref) && !/^(.)\1+$/.test(ref);
+    const looksValid = isValidTransactionRef(normalizedRef);
+    const status = getPurchaseStatus(normalizedRef);
 
     const { error } = await supabase.from("template_purchases").insert({
       user_id: session.user.id,
       template_id: template.id,
       amount_etb: Number(amount),
       payment_method: method!,
-      transaction_ref: ref,
-      status: looksValid ? "approved" : "pending",
+      transaction_ref: normalizedRef,
+      status,
       delivered_at: looksValid ? new Date().toISOString() : null,
     });
 
