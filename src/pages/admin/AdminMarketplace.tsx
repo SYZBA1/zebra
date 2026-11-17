@@ -235,9 +235,13 @@ export default function AdminMarketplace() {
     load();
   };
 
-  const queue = rows.filter((r) => r.review_status === "pending_admin" || r.review_status === "rejected");
+  const isActiveHold = (row: Row) => row.review_status === "under_review" && !!row.review_ready_at && new Date(row.review_ready_at).getTime() > Date.now();
+  const queue = rows.filter((r) => {
+    if (r.review_status === "pending_admin" || r.review_status === "rejected") return true;
+    return r.review_status === "under_review" && (!r.review_ready_at || new Date(r.review_ready_at).getTime() <= Date.now());
+  });
   const catalog = rows.filter((r) => r.review_status === "approved" || !r.review_status);
-  const underHoldCount = rows.filter((r) => r.review_status === "under_review").length;
+  const underHoldCount = rows.filter(isActiveHold).length;
 
   return (
     <div className="space-y-4">
@@ -282,6 +286,7 @@ export default function AdminMarketplace() {
               const ready = t.review_status !== "under_review" || readyInMs <= 0;
               const mins = Math.max(0, Math.ceil(readyInMs / 60000));
               const holdText = ready ? "Ready for admin review" : `${Math.floor(mins / 60)}h ${mins % 60}m remaining`;
+              const statusLabel = t.review_status === "under_review" ? (ready ? "Ready for Admin" : "Under Review") : t.review_status === "pending_admin" ? "Pending Admin" : t.review_status === "rejected" ? "Rejected" : "Approved";
 
               return (
                 <Card key={t.id} className="hover:border-primary/40 transition-colors">
@@ -292,7 +297,7 @@ export default function AdminMarketplace() {
                         <p className="text-xs text-muted-foreground font-mono">{t.owner_name} · {t.sector}</p>
                       </div>
                       <Badge variant={t.review_status === "approved" ? "default" : t.review_status === "rejected" ? "destructive" : "secondary"}>
-                        {t.review_status === "under_review" ? "Under Review" : t.review_status === "pending_admin" ? "Pending Admin" : "Rejected"}
+                        {statusLabel}
                       </Badge>
                     </div>
 
