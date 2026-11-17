@@ -10,6 +10,7 @@ import { createProject } from "@/lib/projects-api";
 import { toast } from "sonner";
 import { parseTemplateDocument, buildContentsFromTemplate } from "@/lib/parse-template";
 import { exportPDF } from "@/lib/export-document";
+import { toStudioDocumentType } from "@/lib/template-document-type";
 import PremiumCheckoutDialog from "./PremiumCheckoutDialog";
 
 export interface MarketTemplate {
@@ -104,21 +105,13 @@ export default function TemplatePreviewDialog({ template, open, onOpenChange }: 
     if (!session) return;
     setBusy("studio");
     const { contents, customTitles } = buildContentsFromTemplate(parsed);
-    const docTypeMap: Record<string, string> = {
-      feasibility: "feasibility",
-      business_plan: "business-plan",
-      company_profile: "org-structure",
-      org_structure: "org-structure",
-      performance: "performance-tracking",
-      business_health: "business-health",
-    };
     try {
       const project = await createProject({
       name: `${template.title} — My Copy`,
       sector: template.sector,
       type: "free",
       template_id: template.id,
-      document_type: docTypeMap[template.document_type] || "feasibility",
+      document_type: toStudioDocumentType(template.document_type),
       contents,
       custom_titles: customTitles,
       language: "en",

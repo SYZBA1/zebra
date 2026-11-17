@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createProject } from "@/lib/projects-api";
 import { toast } from "sonner";
 import { getPurchaseStatus, isValidTransactionRef, normalizeTransactionRef } from "@/lib/premium-checkout";
+import { toStudioDocumentType } from "@/lib/template-document-type";
 import type { MarketTemplate } from "./TemplatePreviewDialog";
 
 interface Props {
@@ -104,16 +105,11 @@ export default function PremiumCheckoutDialog({ template, open, onOpenChange, on
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
     const { contents, customTitles } = buildContentsFromTemplate(parsed);
-    const docTypeMap: Record<string, string> = {
-      feasibility: "feasibility", business_plan: "business-plan",
-      company_profile: "org-structure", org_structure: "org-structure",
-      performance: "performance-tracking", business_health: "business-health",
-    };
     try {
       const project = await createProject({
       name: `${template.title} — My Copy`,
       sector: template.sector, type: "free", template_id: template.id,
-      document_type: docTypeMap[template.document_type] || "feasibility",
+      document_type: toStudioDocumentType(template.document_type),
       contents, custom_titles: customTitles, language: "en",
       });
       onSuccess(); reset();
