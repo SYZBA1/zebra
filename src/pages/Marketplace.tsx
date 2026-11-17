@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TemplatePreviewDialog, { type MarketTemplate } from "@/components/marketplace/TemplatePreviewDialog";
+import { isPublicMarketplaceTemplate, matchesMarketplaceFilter } from "@/lib/marketplace-public";
 
 type Filter = "all" | "free" | "premium" | "official" | "company";
 type DocFilter = "all" | "feasibility" | "business_plan" | "company_profile" | "org_structure" | "performance" | "business_health";
@@ -39,7 +40,9 @@ const Marketplace = () => {
         .select("id,title,description,sector,category,document_type,is_premium,price_cents,owner_name,owner_type,is_verified,rating,rating_count,summary,cover_image_url,created_at,review_status")
         .order("is_verified", { ascending: false })
         .order("rating", { ascending: false });
-      if (data) setTemplates(data as any);
+
+      const visible = (data || []).filter((row: any) => isPublicMarketplaceTemplate(row));
+      setTemplates(visible as MarketTemplate[]);
       setLoading(false);
     };
     load();
@@ -54,8 +57,7 @@ const Marketplace = () => {
   const filtered = useMemo(() => templates.filter((t) => {
     if (filter === "free" && t.is_premium) return false;
     if (filter === "premium" && !t.is_premium) return false;
-    if (filter === "official" && t.owner_type !== "official") return false;
-    if (filter === "company" && t.owner_type === "community") return false;
+    if (!matchesMarketplaceFilter(t.owner_type, filter)) return false;
     if (docFilter !== "all" && t.document_type !== docFilter) return false;
     if (!fuzzyMatch(t, search)) return false;
     return true;
