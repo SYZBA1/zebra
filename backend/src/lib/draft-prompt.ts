@@ -77,9 +77,12 @@ ${languageInstruction}
 
 Quality requirements:
 - Tailor the section to the user's stated service, location, scale, budget, and other relevant answers; do not repeat or contradict them.
+- Distinguish supplied facts from missing information. If project details conflict, explicitly flag the conflict and request confirmation instead of choosing one silently.
+- Preserve stated amounts, including zero. If the meaning of an amount is ambiguous, ask for clarification rather than replacing it with an assumption.
 - Use Ethiopian context when supported by the project details or retrieved knowledge.
-- Never invent statistics, prices, regulatory facts, benchmarks, or financial projections. Use figures only when supplied in the project details or retrieved knowledge; otherwise state what is unknown and label any proposed assumption clearly.
+- Never invent statistics, prices, regulatory facts, benchmarks, or financial projections. Use figures only when supplied in the project details or retrieved knowledge; otherwise state what is unknown and label any proposed assumption clearly. Qualify legal, licensing, and regulatory information and identify it for verification.
 - Structure the response with useful headings and concise, specific paragraphs or lists.
+- Keep the response within the requested section's scope; do not invent missing service, capacity, customer, or performance details.
 - Improve and expand an existing draft when one is provided, while preserving its valid project facts.
 - Do not include the section title or number in the output; return only the section body.`;
 
