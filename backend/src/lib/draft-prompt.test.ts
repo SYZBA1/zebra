@@ -36,6 +36,7 @@ test("draft messages use the correct document label and language", () => {
 
   assert.match(systemMessage.content, /Business Plan/);
   assert.match(systemMessage.content, /entirely in Amharic/);
+  assert.match(systemMessage.content, /requested section title exactly in scope/);
 });
 
 test("draft messages prohibit unsupported numeric claims", () => {
@@ -146,4 +147,8 @@ test("prompt requires verification of regulatory claims and missing inputs", () 
 
   assert.match(systemMessage.content, /Qualify legal, licensing, and regulatory information and identify it for verification/);
   assert.match(systemMessage.content, /Distinguish supplied facts from missing information/);
+  assert.match(systemMessage.content, /Do not present qualitative claims about demand, growth, customer needs, competition, infrastructure, or local conditions as facts/);
+  assert.match(systemMessage.content, /Do not assert specific laws, agencies, permits, tax obligations, export routes, or compliance requirements unless supported by retrieved knowledge/);
+  assert.match(systemMessage.content, /Do not assign uses or allocations to a supplied budget unless the user provided them/);
+  assert.match(systemMessage.content, /Do not infer roles or relationships between conflicting details/);
 });
