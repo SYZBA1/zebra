@@ -67,3 +67,11 @@ The Studio setup captures service description, location, and business scale. The
 Automated checks cover prompt assembly and saved context propagation. The 20 cases are an evaluation plan, not a claim that model outputs have already passed; run them against a configured model before release.
 
 The legacy root Vite copy has no installed dependencies in this workspace, and its configured Supabase `draft-section` function source is not present here. The active `frontend` application uses the updated authenticated backend route; the root copy was checked with the editor diagnostics but could not be fully built locally.
+
+## Nov 18 — Output-validation review
+
+The draft prompt now explicitly requires clarification for conflicting project facts and ambiguous zero amounts, qualification and verification of legal/licensing/regulatory claims, and separation of known facts from missing inputs. Automated prompt-contract samples cover the stated Hawassa budget/sales channel, Amharic selection, a US project and USD budget, embedded instructions in an existing draft, and conflicting locations with a zero budget.
+
+These are prompt-assembly checks, not evaluations of generated model responses. No generated output is marked as passing the 20-case rubric; live generation and human scoring remain outstanding and must be completed before release acceptance.
+
+Live generation was attempted for case 1, but Gemini rejected the configured API key with HTTP 400 (`API_KEY_INVALID`) before returning any output; the other four samples were not run. No live sample could be scored. Re-run cases 1, 3, 11, 16, and 19 with a valid `GEMINI_API_KEY`; do not mark the output-review task complete based on prompt tests alone.
