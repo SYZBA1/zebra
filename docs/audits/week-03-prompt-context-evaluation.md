@@ -74,4 +74,20 @@ The draft prompt now explicitly requires clarification for conflicting project f
 
 These are prompt-assembly checks, not evaluations of generated model responses. No generated output is marked as passing the 20-case rubric; live generation and human scoring remain outstanding and must be completed before release acceptance.
 
-Live generation was attempted for case 1, but Gemini rejected the configured API key with HTTP 400 (`API_KEY_INVALID`) before returning any output; the other four samples were not run. No live sample could be scored. Re-run cases 1, 3, 11, 16, and 19 with a valid `GEMINI_API_KEY`; do not mark the output-review task complete based on prompt tests alone.
+## Nov 19 — Live output review
+
+The API key is now accepted. The configured `gemini-2.5-flash` model returned HTTP 404 as unavailable to this account. `gemini-3.8-flash` was listed for the key but returned HTTP 503 due to high demand. The five samples were run with the available `gemini-3.1-flash-lite` model instead.
+
+| Case | Result | Observed failure |
+|---|---|---|
+| 1 — Hawassa poultry farm | Fail | Added unsupported local demand, growth, and regional claims despite correctly retaining the supplied location, scale, budget, and sales channels. |
+| 3 — Pre-launch accounting SaaS | Fail | Avoided claiming existing customers, but changed the requested Business Overview section to financial feasibility and made unsupported local-market and compliance claims. |
+| 11 — Austin software consultancy | Fail | Retained the US context and USD amount, but changed the requested Market Context section to financial allocation and inferred budget purpose and compliance costs. |
+| 16 — Coffee cooperative with embedded instruction | Fail | Ignored the embedded instruction and did not invent export volume, but asserted unsupported regional and export-regulatory claims. |
+| 19 — Conflicting locations | Fail | Flagged both locations but still assigned possible office/production roles and asserted unsupported land-use and regulatory details. |
+
+The first prompt revision did not achieve a clean pass on any of the five samples. The prompt was tightened to prohibit unsupported qualitative market claims, unverified legal and regulatory specifics, inferred budget allocations, and invented relationships between conflicting details. A second run with the same model still failed all five: cases 1 and 16 contained unsupported regional/market claims; cases 3 and 11 again did not match the requested section and inferred financial details; case 19 again proposed roles for the conflicting locations and gave unsourced regulatory specifics.
+
+The backend default was then changed to configurable `GEMINI_MODEL` (default `gemini-3.1-flash-lite`), since the former default was unavailable to this API key. A third run through that default also failed all five: case 1 introduced unprovided operational inputs and infrastructure; case 3 again wrote Market Analysis instead of Business Overview; case 11 asserted unsourced US compliance obligations; case 16 named unverified export authorities and requirements; case 19 assigned likely roles to the locations and added unsupported regional claims. No sample met the full five-check rubric.
+
+**Outcome:** The live output-validation review was performed and failures were documented, but output quality is not accepted. Keep the 20-case evaluation and release acceptance open; the remaining cases, Amharic outputs, and prompt/model remediation need follow-up.
