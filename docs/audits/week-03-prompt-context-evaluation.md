@@ -90,4 +90,28 @@ The first prompt revision did not achieve a clean pass on any of the five sample
 
 The backend default was then changed to configurable `GEMINI_MODEL` (default `gemini-3.1-flash-lite`), since the former default was unavailable to this API key. A third run through that default also failed all five: case 1 introduced unprovided operational inputs and infrastructure; case 3 again wrote Market Analysis instead of Business Overview; case 11 asserted unsourced US compliance obligations; case 16 named unverified export authorities and requirements; case 19 assigned likely roles to the locations and added unsupported regional claims. No sample met the full five-check rubric.
 
-**Outcome:** The live output-validation review was performed and failures were documented, but output quality is not accepted. Keep the 20-case evaluation and release acceptance open; the remaining cases, Amharic outputs, and prompt/model remediation need follow-up.
+**Outcome of the initial five-case review:** All five samples failed after the documented prompt iterations. Output quality was not accepted; broader evaluation and prompt/model remediation remained open. Follow-up results are recorded below.
+
+## Nov 19 — Remaining live evaluation and prompt revision
+
+The remaining 15 cases were sent directly to `gemini-3.1-flash-lite` using the current `buildDraftMessages` prompt builder. These calls intentionally included no retrieved knowledge, so they test prompt behavior when the RAG context is empty; they do not represent the authenticated route's full RAG flow. The initial prompt passed 1/15 cases. A stricter source-boundary revision passed 4/15. A second revision made the empty retrieval state explicit in every prompt and prohibited using prior model knowledge to fill gaps; after retrying case 18 once following a temporary HTTP 503, the final run passed 5/15:
+
+| Case | Requested section | Result after prompt revision | Main finding |
+|---|---|---|---|
+| 2 | Market Analysis | Fail | Did not identify the missing budget and introduced unsourced market and regulatory topics. |
+| 4 | Primary Product/Service (Amharic) | Fail | Used Amharic but added unsupported supplier, process, and customer details. |
+| 5 | Company Description | Pass | Preserved the expansion, staffing, and budget facts; asked for missing operational details. |
+| 6 | Operational Risks | Fail | Introduced unprovided staffing, infrastructure, and operational risk details as facts. |
+| 7 | Scope of Work & Deliverables | Fail | Inferred delivery procedures, fleet maintenance, and reporting deliverables. |
+| 8 | Operations Plan | Fail | Added unprovided workflow, performance metrics, and operating requirements. |
+| 9 | Installed Capacity | Pass | Left room count and capacity unknown and requested the missing inputs. |
+| 10 | Target Market & Customer Segments | Fail | Inferred customer needs and an exclusive geographic focus not supplied by the user. |
+| 12 | Market Analysis | Fail | Introduced unverified export standards, regulatory details, and market claims. |
+| 13 | Product/Service Description (Amharic) | Pass | Used Amharic, preserved the location and staff count, and asked for missing product details. |
+| 14 | Location (Amharic) | Fail | Used Amharic but included input-language commentary outside the requested section. |
+| 15 | Basic Assumptions | Pass | Preserved the supplied budget and staff count and identified missing project details. |
+| 17 | Primary Product/Service | Pass | Kept the service scope unknown and asked focused clarification questions. |
+| 18 | Funding Requirements | Fail | Preserved zero but assumed the project would rely on existing internal resources. |
+| 20 | Project Delivery Metrics | Fail | Introduced unprovided operating details and measurement periods. |
+
+All three Amharic samples generated Amharic text, but cases 4 and 14 failed other quality checks. The final prompt version passed 5/15 cases, so 10 still failed. The original five live samples have not been rerun with this prompt revision, so the results are not a same-prompt 20-case evaluation. Keep release acceptance open; next work should address unsupported-claim enforcement and rerun all 20 cases consistently, including with retrieved knowledge.
