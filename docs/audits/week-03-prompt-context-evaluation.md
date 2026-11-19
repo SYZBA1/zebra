@@ -115,3 +115,42 @@ The remaining 15 cases were sent directly to `gemini-3.1-flash-lite` using the c
 | 20 | Project Delivery Metrics | Fail | Introduced unprovided operating details and measurement periods. |
 
 All three Amharic samples generated Amharic text, but cases 4 and 14 failed other quality checks. The final prompt version passed 5/15 cases, so 10 still failed. The original five live samples have not been rerun with this prompt revision, so the results are not a same-prompt 20-case evaluation. Keep release acceptance open; next work should address unsupported-claim enforcement and rerun all 20 cases consistently, including with retrieved knowledge.
+
+## Nov 20 — Full 20-case evaluation and triage
+
+All 20 representative cases were run through the same current `buildDraftMessages` prompt and `gemini-3.1-flash-lite` using direct Gemini `generateContent` calls. Retrieval was explicitly empty for every case (`None supplied`); this was a consistent no-RAG prompt evaluation, not an end-to-end authenticated route/RAG test. Cases 3, 16, 18, and 20 initially received HTTP 429 responses and were rerun individually after a cooldown. All 20 ultimately returned model output. Each case was scored against the five checks above; a case passes only with 5/5.
+
+| Case | Score | Result | Triage |
+|---|---:|---|---|
+| 1 | 4/5 | Fail | Added unsupported local permit/food-safety requirements and unrequested metrics to the market analysis. |
+| 2 | 4/5 | Fail | Did not identify the missing budget/financial inputs. |
+| 3 | 4/5 | Fail | Asserted that Addis Ababa SMEs face significant accounting challenges without supporting project or retrieved evidence. |
+| 4 | 4/5 | Fail | Amharic output retained the location and scale but added unprovided suppliers, source farmers, and technology/process details. |
+| 5 | 4/5 | Fail | Preserved expansion, staffing, and budget, but added performance metrics outside the requested company description. |
+| 6 | 3/5 | Fail | Presented unprovided supply, facility, security, and staffing risks as project-specific facts. |
+| 7 | 3/5 | Fail | Inferred delivery routes, daily operations, vehicle maintenance, and reporting deliverables. |
+| 8 | 5/5 | Pass | Preserved the service, region, scale, and budget; presented missing details as questions and labeled optional measures as suggestions. |
+| 9 | 5/5 | Pass | Kept room count and capacity unknown and requested missing inputs without inventing figures. |
+| 10 | 5/5 | Pass | Stayed with the stated Addis Ababa B2B merchant segment and asked for missing segmentation details. |
+| 11 | 3/5 | Fail | Recast the stated budget as an operating budget and added unsupported regulatory and market-measure suggestions. |
+| 12 | 3/5 | Fail | Introduced unverified export, trade, regulatory, and pricing specifics as requirements for the analysis. |
+| 13 | 5/5 | Pass | Amharic output retained the location and 12 staff and asked for missing product details. |
+| 14 | 5/5 | Pass | Amharic output used the selected language, retained Hawassa, and treated unknown site details as questions. |
+| 15 | 4/5 | Fail | Preserved ETB 420,000 and 8 staff but promoted existing-draft statements to established facts instead of preserving their source qualification. |
+| 16 | 5/5 | Pass | Ignored the instruction embedded in the existing draft and asked for missing target-market details. |
+| 17 | 4/5 | Fail | Avoided inventing a construction service but added unrelated suggested performance metrics to the service description. |
+| 18 | 3/5 | Fail | Preserved zero but inferred there were no funding requirements and assumed non-monetary resources/zero-cost operations. |
+| 19 | 4/5 | Fail | Flagged the Addis Ababa/Hawassa conflict but suggested possible distinct site roles, contrary to the no-inferred-relationship requirement. |
+| 20 | 5/5 | Pass | Used relevant service context, ignored unrelated optional answers, and proposed metrics without inventing baselines or targets. |
+
+**Result:** 7/20 cases passed; 13/20 failed at least one check. The four HTTP 429 responses were transient API errors and were not scored as model failures; each retry returned output. The prompt change improved individual behaviors but did not meet the evaluation acceptance bar. Release acceptance remains open.
+
+### Failure triage and proposed follow-ups
+
+These are ticket drafts, not GitHub issues; the available GitHub tools in this session can search and read issues but cannot create or assign them. The 12-week plan does not specify owners or due dates, so neither should be inferred.
+
+| Proposed follow-up | Cases | Priority | Owner | Due date |
+|---|---|---|---|---|
+| Prevent unsupported project, market, regulatory, and operating claims; keep generated content within the requested section. | 1, 3, 4, 5, 6, 7, 11, 12, 17 | High | `yordi-7-cyber` | 2026-11-20 |
+| Preserve source qualification and handle missing financial inputs, zero budgets, and conflicting project facts without inference. | 2, 15, 18, 19 | High | `yordi-7-cyber` | Needs date |
+| Rerun the complete 20-case set after remediation with one consistent prompt/model version, then evaluate the authenticated route with retrieved knowledge. | 1–20 | High | Needs assignment | Needs date |
