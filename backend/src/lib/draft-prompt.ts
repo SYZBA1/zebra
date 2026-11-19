@@ -63,6 +63,10 @@ export function buildDraftMessages(input: DraftPromptInput): Array<{ role: "syst
   const languageInstruction = language === "am"
     ? "Write the content entirely in Amharic (አማርኛ), using clear, professional Ethiopian business terminology."
     : "Write the content in professional English.";
+  const noKnowledgeInstruction = knowledge
+    ? ""
+    : `NO RETRIEVED KNOWLEDGE MODE:
+Use only directly supplied project facts, then identify missing information and ask focused questions. Do not expand gaps with generic industry knowledge or assumptions. Do not present examples as project facts. For optional performance metrics, clearly label them as suggestions and omit targets, baselines, and time periods.`;
 
   const systemPrompt = `You are the Zebra Business Intelligence Engine, a professional business-document writer for Ethiopian entrepreneurs and businesses.
 
@@ -71,20 +75,27 @@ Write only the requested section. Match the document type and requested section 
 PROJECT_CONTEXT_JSON:
 ${JSON.stringify(projectContext, null, 2)}
 
-${knowledge ? `RETRIEVED_KNOWLEDGE (reference only; do not quote verbatim):\n${knowledge}\n\n` : ""}CURRENT TASK: Write section ${text(input.sectionId, 80) || "?"} — "${text(input.sectionTitle, 240)}" for this ${documentLabel}.
+RETRIEVED_KNOWLEDGE (reference only; do not quote verbatim):
+${knowledge || "None supplied."}
+
+CURRENT TASK: Write section ${text(input.sectionId, 80) || "?"} — "${text(input.sectionTitle, 240)}" for this ${documentLabel}.
 
 ${languageInstruction}
+
+${noKnowledgeInstruction}
 
 Quality requirements:
 - Tailor the section to the user's stated service, location, scale, budget, and other relevant answers; do not repeat or contradict them.
 - Distinguish supplied facts from missing information. If project details conflict, explicitly flag the conflict and request confirmation instead of choosing one silently.
 - Do not infer roles or relationships between conflicting details, such as assigning one location as the production site and another as an office.
 - Preserve stated amounts, including zero. If the meaning of an amount is ambiguous, ask for clarification rather than replacing it with an assumption.
-- Use Ethiopian context when supported by the project details or retrieved knowledge.
-- Never invent statistics, prices, regulatory facts, benchmarks, or financial projections. Use figures only when supplied in the project details or retrieved knowledge; otherwise state what is unknown and label any proposed assumption clearly. Qualify legal, licensing, and regulatory information and identify it for verification.
-- Do not present qualitative claims about demand, growth, customer needs, competition, infrastructure, or local conditions as facts unless supported by supplied project data or retrieved knowledge.
-- Do not assert specific laws, agencies, permits, tax obligations, export routes, or compliance requirements unless supported by retrieved knowledge. Without support, state that the applicable requirements need verification without guessing what they are.
-- Do not assign uses or allocations to a supplied budget unless the user provided them.
+- Use only PROJECT_CONTEXT_JSON and RETRIEVED_KNOWLEDGE as factual sources. General model knowledge is not evidence for project, market, geographic, industry, infrastructure, or regulatory claims.
+- If retrieved knowledge is "None supplied" or does not support a claim, use only explicit project facts; state what is missing instead of filling the gap from prior knowledge.
+- Do not add unsupported qualitative claims about demand, growth, customer needs, competitors, local conditions, or the importance or suitability of a location. If the context and retrieved knowledge do not support a claim, omit it and state that the information was not supplied.
+- Never invent statistics, prices, regulatory facts, benchmarks, or financial projections. Use figures only when supplied in the project details or retrieved knowledge; otherwise identify the missing information. Do not introduce named laws, agencies, permits, tax obligations, export routes, or compliance requirements unless retrieved knowledge supports them; otherwise say the applicable requirements need verification without guessing specifics.
+- Do not invent customers, suppliers, processes, technology, staffing, capacity, infrastructure, resources, or operating arrangements. You may ask for these details, but do not state plausible examples as facts.
+- Do not assign uses to a supplied budget or claim it is sufficient unless the user provided that information. A zero budget remains zero; do not assume it can be addressed through personal assets, barter, future revenue, or other funding.
+- For performance measures, do not invent baselines, targets, thresholds, or time periods. Clearly label optional metrics as suggestions and identify required measurement data as missing.
 - Structure the response with useful headings and concise, specific paragraphs or lists.
 - Keep the response within the requested section's scope; do not invent missing service, capacity, customer, or performance details.
 - Improve and expand an existing draft when one is provided, while preserving its valid project facts.

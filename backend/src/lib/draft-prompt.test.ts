@@ -39,6 +39,16 @@ test("draft messages use the correct document label and language", () => {
   assert.match(systemMessage.content, /requested section title exactly in scope/);
 });
 
+test("draft messages include retrieved knowledge when available", () => {
+  const [systemMessage] = buildDraftMessages({
+    ...baseInput,
+    knowledge: "Source: verified operating guidance.",
+  });
+
+  assert.match(systemMessage.content, /Source: verified operating guidance/);
+  assert.doesNotMatch(systemMessage.content, /None supplied\./);
+});
+
 test("draft messages prohibit unsupported numeric claims", () => {
   const [systemMessage] = buildDraftMessages(baseInput);
 
@@ -109,7 +119,7 @@ test("representative evaluation cases preserve critical facts and call for cauti
           q5_customers: "US customers",
         },
       },
-      expected: ["Austin, United States", "USD 50,000", "US customers", "when supported"],
+      expected: ["Austin, United States", "USD 50,000", "US customers", "General model knowledge is not evidence"],
     },
     {
       name: "prompt-injection text in an existing draft",
@@ -145,10 +155,14 @@ test("representative evaluation cases preserve critical facts and call for cauti
 test("prompt requires verification of regulatory claims and missing inputs", () => {
   const [systemMessage] = buildDraftMessages(baseInput);
 
-  assert.match(systemMessage.content, /Qualify legal, licensing, and regulatory information and identify it for verification/);
+  assert.match(systemMessage.content, /RETRIEVED_KNOWLEDGE \(reference only; do not quote verbatim\):\nNone supplied\./);
+  assert.match(systemMessage.content, /requirements need verification without guessing specifics/);
   assert.match(systemMessage.content, /Distinguish supplied facts from missing information/);
-  assert.match(systemMessage.content, /Do not present qualitative claims about demand, growth, customer needs, competition, infrastructure, or local conditions as facts/);
-  assert.match(systemMessage.content, /Do not assert specific laws, agencies, permits, tax obligations, export routes, or compliance requirements unless supported by retrieved knowledge/);
-  assert.match(systemMessage.content, /Do not assign uses or allocations to a supplied budget unless the user provided them/);
+  assert.match(systemMessage.content, /Use only PROJECT_CONTEXT_JSON and RETRIEVED_KNOWLEDGE as factual sources/);
+  assert.match(systemMessage.content, /If retrieved knowledge is "None supplied" or does not support a claim/);
+  assert.match(systemMessage.content, /Do not add unsupported qualitative claims about demand, growth, customer needs, competitors, local conditions/);
+  assert.match(systemMessage.content, /Do not introduce named laws, agencies, permits, tax obligations, export routes, or compliance requirements unless retrieved knowledge supports them/);
+  assert.match(systemMessage.content, /A zero budget remains zero; do not assume it can be addressed through personal assets, barter, future revenue, or other funding/);
+  assert.match(systemMessage.content, /For performance measures, do not invent baselines, targets, thresholds, or time periods/);
   assert.match(systemMessage.content, /Do not infer roles or relationships between conflicting details/);
 });
