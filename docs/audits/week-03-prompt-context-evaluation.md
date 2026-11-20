@@ -154,3 +154,9 @@ These are ticket drafts, not GitHub issues; the available GitHub tools in this s
 | Prevent unsupported project, market, regulatory, and operating claims; keep generated content within the requested section. | 1, 3, 4, 5, 6, 7, 11, 12, 17 | High | `yordi-7-cyber` | 2026-11-20 |
 | Preserve source qualification and handle missing financial inputs, zero budgets, and conflicting project facts without inference. | 2, 15, 18, 19 | High | `yordi-7-cyber` | Needs date |
 | Rerun the complete 20-case set after remediation with one consistent prompt/model version, then evaluate the authenticated route with retrieved knowledge. | 1–20 | High | Needs assignment | Needs date |
+
+### Evening prompt-remediation check
+
+The prompt was further tightened to keep questions neutral, explicitly preserve missing budgets, avoid unsupported market assumptions, constrain risk sections, attribute existing-draft-only details, and handle zero budgets and conflicting locations without inferring plans. Backend prompt tests (11) and TypeScript build pass.
+
+The final live prompt was spot-checked with `gemini-3.1-flash-lite` and no retrieved knowledge for cases 6, 7, 11, 15, 18, and 19. Cases 6, 7, 11, 18, and 19 returned focused outputs without the earlier risk-category, scope, unsupported-demand, zero-budget-plan, or alternate-site-role failures. Case 15 preserved the budget and staffing values but still needs stronger explicit attribution to the supplied draft. Cases 1–5, 12, and 17 were rerun under the preceding prompt revision, not this final version. Therefore, do not mark the original 13 failures resolved or release accepted until the full 20 cases are rerun under one final prompt version and scored consistently.

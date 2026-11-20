@@ -70,6 +70,15 @@ Use only directly supplied project facts, then identify missing information. Do 
   const riskSectionInstruction = /risk/i.test(input.sectionTitle)
     ? `RISK-SECTION RULE: If no risks are supplied, state that none were specified and ask only this question: "What operational risks have you identified?" Do not suggest risk categories or ask additional questions.`
     : "";
+  const marketSectionInstruction = /market/i.test(input.sectionTitle)
+    ? `MARKET-SECTION RULE: Do not presume demand, customers, competitors, contracts, or market trends exist. Ask only whether verified market evidence has been gathered and what it shows. Do not ask what is driving demand or what competitors are doing unless the sources establish those facts.`
+    : "";
+  const hasZeroBudget = Object.entries(projectContext.phase1Answers).some(([key, value]) =>
+    /budget|funding|capital/i.test(key) && /^(?:0(?:\s*(?:ETB|USD|EUR|KES))?|zero(?:\s+budget)?)$/i.test(value)
+  );
+  const zeroBudgetInstruction = hasZeroBudget
+    ? `ZERO-BUDGET RULE FOR THIS REQUEST: State only that the stated budget is zero. Do not say there are no funding requirements or infer any resource plan. Ask only: "What funding or resources, if any, have been confirmed for the launch?"`
+    : "";
   const existingDraftInstruction = existingContent
     ? `EXISTING-DRAFT RULE FOR THIS REQUEST: The existing draft is the only source for any details not present in PROJECT_CONTEXT_JSON or RETRIEVED_KNOWLEDGE. Prefix each such detail with "The supplied draft states" and say it requires confirmation. Never call these details established, current, or planned.`
     : "";
@@ -92,6 +101,8 @@ ${languageInstruction}
 
 ${noKnowledgeInstruction}
 ${riskSectionInstruction}
+${marketSectionInstruction}
+${zeroBudgetInstruction}
 ${existingDraftInstruction}
 
 Quality requirements:

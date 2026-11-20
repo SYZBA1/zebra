@@ -201,6 +201,22 @@ test("risk and existing-draft sections get request-specific constraints", () => 
   });
 
   assert.match(riskPrompt.content, /RISK-SECTION RULE: If no risks are supplied, state that none were specified and ask only this question/);
+  const [marketPrompt] = buildDraftMessages({
+    ...baseInput,
+    sectionTitle: "Market Context",
+  });
+  assert.match(marketPrompt.content, /MARKET-SECTION RULE: Do not presume demand, customers, competitors, contracts, or market trends exist/);
   assert.match(draftPrompt.content, /EXISTING-DRAFT RULE FOR THIS REQUEST/);
   assert.match(draftPrompt.content, /Never call these details established, current, or planned/);
+});
+
+test("zero-budget projects receive a focused clarification rule", () => {
+  const [systemMessage] = buildDraftMessages({
+    ...baseInput,
+    sectionTitle: "Funding Requirements",
+    phase1Answers: { budget: "0" },
+  });
+
+  assert.match(systemMessage.content, /ZERO-BUDGET RULE FOR THIS REQUEST/);
+  assert.match(systemMessage.content, /Do not say there are no funding requirements or infer any resource plan/);
 });
