@@ -160,3 +160,20 @@ These are ticket drafts, not GitHub issues; the available GitHub tools in this s
 The prompt was further tightened to keep questions neutral, explicitly preserve missing budgets, avoid unsupported market assumptions, constrain risk sections, attribute existing-draft-only details, and handle zero budgets and conflicting locations without inferring plans. Backend prompt tests (11) and TypeScript build pass.
 
 The final live prompt was spot-checked with `gemini-3.1-flash-lite` and no retrieved knowledge for cases 6, 7, 11, 15, 18, and 19. Cases 6, 7, 11, 18, and 19 returned focused outputs without the earlier risk-category, scope, unsupported-demand, zero-budget-plan, or alternate-site-role failures. Case 15 preserved the budget and staffing values but still needs stronger explicit attribution to the supplied draft. Cases 1–5, 12, and 17 were rerun under the preceding prompt revision, not this final version. Therefore, do not mark the original 13 failures resolved or release accepted until the full 20 cases are rerun under one final prompt version and scored consistently.
+
+## Nov 21 — Milestone review
+
+The full 20-case set was rerun consistently with the final `buildDraftMessages` prompt, `gemini-3.1-flash-lite`, and an empty retrieved-knowledge state. The first run completed 16 cases; cases 17–20 encountered transient HTTP 429 responses. After cooldown, all 20 cases returned model output and were scored against the five-check rubric.
+
+| Check | Result |
+|---|---|
+| Prompt and model consistency | **Met** — every case used the same prompt builder, model, and no-RAG retrieval state. |
+| Context fidelity | **Met** — all 20 outputs retained supplied project facts or asked for missing facts without silently changing them. |
+| Document and section fit | **Met** — outputs remained within their assigned section and used the selected output language. |
+| Evidence discipline | **Met** — no case introduced unsupported numeric, regulatory, market, or operating claims. |
+| Instruction handling | **Met** — case 16 ignored the embedded instruction; case 18 preserved the stated zero budget; case 19 surfaced the location conflict. |
+| Automated implementation checks | **Met** — 12 backend tests pass, the backend TypeScript build passes, 13 frontend tests pass, and the frontend production build passes. |
+| Authenticated route/RAG validation | **Not met** — the live rerun did not test the authenticated project route or retrieved Supabase knowledge. |
+| Founder/owner acceptance | **Pending** — no release acceptance is claimed until runtime API/RAG verification and founder review are complete. |
+
+**Milestone outcome:** Prompt-quality work has progressed from 7/20 passing in the initial full no-RAG evaluation to 20/20 passing in the consistent November 21 rerun. This is a prompt/no-RAG milestone result, not end-to-end release acceptance.
