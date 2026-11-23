@@ -22,7 +22,10 @@ async function main(): Promise<void> {
     supabaseUrl,
     supabaseAnonKey
   );
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email!,
+    password: password!,
+  });
   if (error || !data.session) {
     throw new Error(`Test account authentication failed: ${error?.message || "No session"}`);
   }
@@ -30,8 +33,9 @@ async function main(): Promise<void> {
   const response = await fetch(`${apiUrl}/api/draft`, {
     method: "POST",
     headers: {
+      "Authorization": `Bearer ${data.session.access_token}`,
       "Content-Type": "application/json",
-      Authorization: `Bearer ${data.session.access_token}`,
+      "Accept": "text/event-stream",
     },
     body: JSON.stringify({
       sectionId: "5.1",
@@ -60,11 +64,13 @@ async function main(): Promise<void> {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let output = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    for (const line of chunk.split("\n")) {
+  let buffer = "";
+  const parseSseChunk = (chunk: string): void => {
+    buffer += chunk;
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
       if (!line.startsWith("data: ")) continue;
       const payload = line.slice(6).trim();
       if (!payload || payload === "[DONE]") continue;
@@ -77,6 +83,15 @@ async function main(): Promise<void> {
         // Ignore malformed stream fragments.
       }
     }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      parseSseChunk(decoder.decode());
+      break;
+    }
+    parseSseChunk(decoder.decode(value, { stream: true }));
   }
 
   console.log(JSON.stringify({
