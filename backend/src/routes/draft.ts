@@ -7,13 +7,16 @@ import { buildDraftMessages } from "../lib/draft-prompt";
 
 const router = Router();
 
-async function retrieveContext(query: string, language: string): Promise<string> {
+async function retrieveContext(
+  query: string,
+  language: string
+): Promise<{ knowledge: string; sourceCount: number }> {
   const supabase = createClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
   const embedding = await embedQuery(query);
-  if (!embedding) return "";
+  if (!embedding) return { knowledge: "", sourceCount: 0 };
 
   try {
     const { data, error } = await supabase.rpc("match_knowledge", {
@@ -21,13 +24,14 @@ async function retrieveContext(query: string, language: string): Promise<string>
       match_count: 5,
       filter_language: language,
     });
-    if (error || !data?.length) return "";
-    return data
+    if (error || !data?.length) return { knowledge: "", sourceCount: 0 };
+    const knowledge = data
       .map((r: { content: string }, i: number) => `[Source ${i + 1}] ${r.content}`)
       .join("\n\n---\n\n");
+    return { knowledge, sourceCount: data.length };
   } catch (e) {
     console.error("retrieveContext error:", e);
-    return "";
+    return { knowledge: "", sourceCount: 0 };
   }
 }
 
@@ -52,7 +56,7 @@ router.post("/draft", authMiddleware, async (req: Request, res: Response): Promi
 
     // Retrieve RAG context
     const retrievalQuery = `${sectionTitle} for ${documentType} in ${sector} sector, project ${projectName}${typeof serviceDescription === "string" ? `: ${serviceDescription.slice(0, 300)}` : ""}`;
-    const knowledge = await retrieveContext(retrievalQuery, language);
+    const { knowledge, sourceCount } = await retrieveContext(retrievalQuery, language);
     const messages = buildDraftMessages({
       sectionId,
       sectionTitle,
@@ -72,6 +76,7 @@ router.post("/draft", authMiddleware, async (req: Request, res: Response): Promi
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Zebra-Retrieval-Source-Count", String(sourceCount));
 
     const reader = stream.getReader();
     const pump = async () => {
