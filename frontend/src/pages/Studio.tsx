@@ -14,6 +14,7 @@ import { createProject, deleteProject, listProjects, restoreProject, type Projec
 import type { OutlineNode } from "@/lib/feasibility-outline";
 import { buildProjectPhase1Answers } from "@/lib/project-context";
 import { getStoredTheme, setStoredTheme, type Theme } from "@/lib/theme";
+import { getStoredStudioLanguage, setStoredStudioLanguage, type StudioLanguage } from "@/lib/studio-language";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -148,7 +149,7 @@ const Studio = () => {
   const [projectServiceDescription, setProjectServiceDescription] = useState("");
   const [projectPhase1Answers, setProjectPhase1Answers] = useState<Record<string, unknown>>({});
   const [documentType, setDocumentType] = useState<DocumentType>("feasibility");
-  const [language, setLanguage] = useState<"en" | "am">("en");
+  const [language, setLanguage] = useState<StudioLanguage>(() => getStoredStudioLanguage());
   const [theme, setTheme] = useState<Theme>(getStoredTheme());
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
@@ -175,6 +176,12 @@ const Studio = () => {
 
   const t = (en: string, am: string) => (language === "en" ? en : am);
   const visibleDocTools = hasFullCatalog ? DOC_TOOLS : DOC_TOOLS.filter((tool) => USER_STUDIO_TYPES.includes(tool.type));
+
+  const changeLanguage = (nextLanguage: StudioLanguage) => {
+    setLanguage(nextLanguage);
+    setInitialLanguage(nextLanguage);
+    setStoredStudioLanguage(nextLanguage);
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -291,7 +298,10 @@ const Studio = () => {
     setInitialContents(project.contents || {});
     setInitialCustomTitles(project.custom_titles || {});
     setInitialOutline(parseOutline(project.outline));
-    setInitialLanguage((project.language || "en") as "en" | "am");
+    const projectLanguage = (project.language || "en") as StudioLanguage;
+    setLanguage(projectLanguage);
+    setInitialLanguage(projectLanguage);
+    setStoredStudioLanguage(projectLanguage);
     setIntroChoice(project.type === "free" ? "list" : "outline");
     setView("editor");
   };
@@ -339,6 +349,10 @@ const Studio = () => {
     setDocumentType("business-plan");
     setInitialContents({ cover: project.contents?.cover || "", "1": project.contents?.["1"] || "" });
     setInitialCustomTitles({});
+    const projectLanguage = (project.language || "en") as StudioLanguage;
+    setLanguage(projectLanguage);
+    setInitialLanguage(projectLanguage);
+    setStoredStudioLanguage(projectLanguage);
     setShowFromFeasibility(false);
     setView("setup");
   };
@@ -435,7 +449,7 @@ const Studio = () => {
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
           <button
-            onClick={() => setLanguage(language === "en" ? "am" : "en")}
+            onClick={() => changeLanguage(language === "en" ? "am" : "en")}
             className="flex items-center gap-1 text-xs font-mono px-2 py-1 rounded bg-secondary text-secondary-foreground hover:bg-accent transition-colors"
           >
             <Languages className="h-3.5 w-3.5" />
@@ -685,6 +699,7 @@ const Studio = () => {
           initialCustomTitles={initialCustomTitles}
           initialOutline={initialOutline}
           initialLanguage={initialLanguage}
+          onLanguageChange={changeLanguage}
           useEmptyOutline={introChoice === "list"}
         />
       )}
