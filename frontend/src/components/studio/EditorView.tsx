@@ -43,6 +43,7 @@ interface EditorViewProps {
   initialCustomTitles?: Record<string, string>;
   initialOutline?: OutlineNode[];
   initialLanguage?: Language;
+  onLanguageChange?: (language: Language) => void;
   useEmptyOutline?: boolean;
 }
 
@@ -113,7 +114,7 @@ const NodeItem = ({
   );
 };
 
-const EditorView = ({ projectName, sector, serviceDescription, phase1Answers, documentType, onBack, projectId, initialContents, initialCustomTitles, initialOutline, initialLanguage, useEmptyOutline }: EditorViewProps) => {
+const EditorView = ({ projectName, sector, serviceDescription, phase1Answers, documentType, onBack, projectId, initialContents, initialCustomTitles, initialOutline, initialLanguage, onLanguageChange, useEmptyOutline }: EditorViewProps) => {
   const [activeNodeId, setActiveNodeId] = useState("cover");
   const [contents, setContents] = useState<Record<string, string>>(initialContents || {});
   const [language, setLanguage] = useState<Language>(initialLanguage || "en");
@@ -125,6 +126,15 @@ const EditorView = ({ projectName, sector, serviceDescription, phase1Answers, do
   const { toast } = useToast();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
+
+  useEffect(() => {
+    if (initialLanguage) setLanguage(initialLanguage);
+  }, [initialLanguage]);
+
+  const changeLanguage = (nextLanguage: Language) => {
+    setLanguage(nextLanguage);
+    onLanguageChange?.(nextLanguage);
+  };
 
   const outlineMap: Record<DocumentType, OutlineNode[]> = {
     "feasibility": FEASIBILITY_OUTLINE,
@@ -298,7 +308,7 @@ const EditorView = ({ projectName, sector, serviceDescription, phase1Answers, do
       <div className="px-4 py-3 border-b border-sidebar-border">
         <div className="flex items-center justify-between mb-1">
           <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground truncate">{sector}</p>
-          <button onClick={() => setLanguage(language === "en" ? "am" : "en")}
+          <button onClick={() => changeLanguage(language === "en" ? "am" : "en")}
             className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-accent transition-colors" title="Toggle language">
             <Languages className="h-3 w-3" />{language === "en" ? "EN" : "አማ"}
           </button>
