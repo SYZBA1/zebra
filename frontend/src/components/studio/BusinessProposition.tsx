@@ -4,14 +4,15 @@ import { ArrowLeft, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createProject } from "@/lib/projects-api";
 import { useToast } from "@/hooks/use-toast";
+import { getStoredStudioLanguage, setStoredStudioLanguage } from "@/lib/studio-language";
 
 const FIELDS = [
-  { id: "businessName",     label: "Business Name",      labelAm: "የንግድ ስም",        placeholder: "What is your business called?",              required: true,  rows: 1 },
-  { id: "problemStatement", label: "Problem Statement",  labelAm: "የችግር መግለጫ",      placeholder: "What problem does your business solve?",     required: true,  rows: 4 },
-  { id: "solution",         label: "Your Solution",      labelAm: "መፍትሔዎ",           placeholder: "How does your business solve this problem?", required: true,  rows: 4 },
-  { id: "targetMarket",     label: "Target Market",      labelAm: "ዒላማ ገበያ",         placeholder: "Who is your ideal customer?",                required: false, rows: 3 },
-  { id: "valueProposition", label: "Value Proposition",  labelAm: "ዋጋ ሐሳብ",          placeholder: "What specific value do you deliver?",        required: false, rows: 3 },
-  { id: "revenueModel",     label: "Revenue Model",      labelAm: "የገቢ ሞዴል",         placeholder: "How will your business make money?",         required: false, rows: 3 },
+  { id: "businessName",     label: "Business Name",      labelAm: "የንግድ ስም",        placeholder: "What is your business called?",              placeholderAm: "የንግድዎ ስም ምንድን ነው?", required: true,  rows: 1 },
+  { id: "problemStatement", label: "Problem Statement",  labelAm: "የችግር መግለጫ",      placeholder: "What problem does your business solve?",     placeholderAm: "ንግድዎ የትኛውን ችግር ይፈታል?", required: true,  rows: 4 },
+  { id: "solution",         label: "Your Solution",      labelAm: "መፍትሔዎ",           placeholder: "How does your business solve this problem?", placeholderAm: "ንግድዎ ችግሩን እንዴት ይፈታል?", required: true,  rows: 4 },
+  { id: "targetMarket",     label: "Target Market",      labelAm: "ዒላማ ገበያ",         placeholder: "Who is your ideal customer?",                placeholderAm: "ተስማሚ ደንበኛዎ ማን ነው?", required: false, rows: 3 },
+  { id: "valueProposition", label: "Value Proposition",  labelAm: "ዋጋ ሐሳብ",          placeholder: "What specific value do you deliver?",        placeholderAm: "የትኛውን ልዩ ዋጋ ይሰጣሉ?", required: false, rows: 3 },
+  { id: "revenueModel",     label: "Revenue Model",      labelAm: "የገቢ ሞዴል",         placeholder: "How will your business make money?",         placeholderAm: "ንግድዎ ገቢ እንዴት ያገኛል?", required: false, rows: 3 },
 ] as const;
 
 type FieldId = typeof FIELDS[number]["id"];
@@ -24,7 +25,7 @@ const BusinessProposition = () => {
   const phase1Answers = (location.state as any)?.phase1Answers || {};
 
   const [isSaving, setIsSaving] = useState(false);
-  const [language, setLanguage] = useState<"en" | "am">("en");
+  const [language, setLanguage] = useState<"en" | "am">(() => getStoredStudioLanguage());
   const [languageFlip, setLanguageFlip] = useState(false);
   const [form, setForm] = useState<Record<FieldId, string>>({
     businessName:     phase1Answers.q1_sector ?? "",
@@ -39,7 +40,14 @@ const BusinessProposition = () => {
 
   const handleLanguageToggle = () => {
     setLanguageFlip(true);
-    setTimeout(() => { setLanguage((l) => (l === "en" ? "am" : "en")); setLanguageFlip(false); }, 300);
+    setTimeout(() => {
+      setLanguage((current) => {
+        const next = current === "en" ? "am" : "en";
+        setStoredStudioLanguage(next);
+        return next;
+      });
+      setLanguageFlip(false);
+    }, 300);
   };
 
   const handleChange = (id: FieldId, value: string) => setForm((prev) => ({ ...prev, [id]: value }));
@@ -210,7 +218,7 @@ const BusinessProposition = () => {
                           type="text"
                           value={form[field.id]}
                           onChange={(e) => handleChange(field.id, e.target.value)}
-                          placeholder={field.placeholder}
+                          placeholder={language === "am" ? field.placeholderAm : field.placeholder}
                           className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition"
                         />
                       ) : (
@@ -218,7 +226,7 @@ const BusinessProposition = () => {
                           rows={field.rows}
                           value={form[field.id]}
                           onChange={(e) => handleChange(field.id, e.target.value)}
-                          placeholder={field.placeholder}
+                          placeholder={language === "am" ? field.placeholderAm : field.placeholder}
                           className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition resize-none"
                         />
                       )}
