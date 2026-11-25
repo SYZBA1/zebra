@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { PHASE1_QUESTIONS } from "@/prompts/phase1Questions";
 import { PHASE1_SYSTEM_PROMPT } from "@/prompts/phase1SystemPrompt";
+import { getStoredStudioLanguage, setStoredStudioLanguage } from "@/lib/studio-language";
 
 const TrafficLight = ({ status }: { status: "green" | "yellow" | "red" }) => (
   <div className="relative w-24 h-64 bg-card rounded-full shadow-2xl p-3 flex flex-col justify-center items-center gap-3 border border-border">
@@ -31,7 +32,7 @@ const Phase1Flow = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [language, setLanguage] = useState<"en" | "am">("en");
+  const [language, setLanguage] = useState<"en" | "am">(() => getStoredStudioLanguage());
   const [isRecording, setIsRecording] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [recommendationStatus, setRecommendationStatus] = useState<"green" | "yellow" | "red">("green");
@@ -43,7 +44,10 @@ const Phase1Flow = () => {
 
   const startVoiceRecording = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) { setError("Voice recording not supported in your browser"); return; }
+    if (!SpeechRecognition) {
+      setError(t("Voice recording not supported in your browser", "የድምጽ ቀረጻ በዚህ አሳሽ አይደገፍም"));
+      return;
+    }
 
     const recognition = new SpeechRecognition();
     recognition.lang = language === "en" ? "en-US" : "am-ET";
@@ -57,7 +61,10 @@ const Phase1Flow = () => {
       for (let i = event.resultIndex; i < event.results.length; i++) transcript += event.results[i][0].transcript;
       setAnswers((prev) => ({ ...prev, [currentQuestion.id]: transcript }));
     };
-    recognition.onerror = (event: any) => { setError(`Recording error: ${event.error}`); setIsRecording(false); };
+    recognition.onerror = (event: any) => {
+      setError(t(`Recording error: ${event.error}`, `የቀረጻ ስህተት: ${event.error}`));
+      setIsRecording(false);
+    };
     recognition.onend   = () => setIsRecording(false);
     recognition.start();
     setTimeout(() => recognition.stop(), 30000);
@@ -66,7 +73,10 @@ const Phase1Flow = () => {
   const handleAnswer = (value: string) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
 
   const handleNext = () => {
-    if (!answers[currentQuestion.id]?.trim()) { setError("Please answer this question to continue."); return; }
+    if (!answers[currentQuestion.id]?.trim()) {
+      setError(t("Please answer this question to continue.", "ለመቀጠል ይህን ጥያቄ ይመልሱ."));
+      return;
+    }
     setError(null);
     if (step + 1 < PHASE1_QUESTIONS.length) { setStep(step + 1); return; }
     generateRecommendation();
@@ -89,7 +99,7 @@ const Phase1Flow = () => {
         body: JSON.stringify({
           conversationId: "phase1-questionnaire",
           message: JSON.stringify({ systemPrompt: PHASE1_SYSTEM_PROMPT, questions: values }),
-          language: "en",
+          language,
         }),
       });
       const response = await res.json();
@@ -99,7 +109,7 @@ const Phase1Flow = () => {
       if (m) setRecommendationStatus(m[0] === "🟢" ? "green" : m[0] === "🟡" ? "yellow" : "red");
     } catch (e) {
       console.error(e);
-      setError("Unable to generate your recommendation. Please try again.");
+      setError(t("Unable to generate your recommendation. Please try again.", "ምክርዎን መፍጠር አልተቻለም። እባክዎ እንደገና ይሞክሩ."));
     } finally {
       setIsSaving(false);
     }
@@ -118,7 +128,14 @@ const Phase1Flow = () => {
 
   const handleLanguageToggle = () => {
     setLanguageFlip(true);
-    setTimeout(() => { setLanguage((l) => (l === "en" ? "am" : "en")); setLanguageFlip(false); }, 300);
+    setTimeout(() => {
+      setLanguage((current) => {
+        const next = current === "en" ? "am" : "en";
+        setStoredStudioLanguage(next);
+        return next;
+      });
+      setLanguageFlip(false);
+    }, 300);
   };
 
   return (
@@ -166,7 +183,7 @@ const Phase1Flow = () => {
                           idx === step ? "text-primary" : idx < step ? "text-green-500" : "text-muted-foreground"
                         }`}>Q{idx + 1}</span>
                         <span className="text-xs text-muted-foreground truncate flex-1 mx-3">
-                          {q.question.substring(0, 42)}…
+                          {t(q.question, q.questionAm || q.question).substring(0, 42)}…
                         </span>
                         {idx < step && <span className="text-green-500 font-bold shrink-0">✓</span>}
                       </div>
@@ -199,7 +216,14 @@ const Phase1Flow = () => {
                     <p className="text-xs uppercase tracking-widest text-primary font-semibold font-mono">
                       Q{step + 1} / {PHASE1_QUESTIONS.length}
                     </p>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground">{currentQuestion.question}</h2>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+                      {t(currentQuestion.question, currentQuestion.questionAm || currentQuestion.question)}
+                    </h2>
+                    {(currentQuestion.hint || currentQuestion.hintAm) && (
+                      <p className="text-sm text-muted-foreground">
+                        {t(currentQuestion.hint || "", currentQuestion.hintAm || currentQuestion.hint || "")}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -218,25 +242,33 @@ const Phase1Flow = () => {
 
                     {currentQuestion.options?.length ? (
                       <div className="grid gap-2.5 sm:grid-cols-2">
-                        {currentQuestion.options.map((option) => (
+                        {currentQuestion.options.map((option, optionIndex) => {
+                          const optionLabel = language === "am"
+                            ? currentQuestion.optionsAm?.[optionIndex] || option
+                            : option;
+                          return (
                           <button key={option} type="button"
                             className={`rounded-lg px-4 py-3 text-left text-sm font-medium border transition-all ${
-                              answers[currentQuestion.id] === option
+                              answers[currentQuestion.id] === optionLabel
                                 ? "bg-primary/10 text-foreground border-primary"
                                 : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:bg-secondary"
                             }`}
-                            onClick={() => handleAnswer(option)}
+                            onClick={() => handleAnswer(optionLabel)}
                           >
-                            {option}
+                            {optionLabel}
                           </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <textarea
                         rows={5}
                         value={answers[currentQuestion.id] ?? ""}
                         onChange={(e) => handleAnswer(e.target.value)}
-                        placeholder="Your answer…"
+                        placeholder={t(
+                          currentQuestion.placeholder || "Your answer…",
+                          currentQuestion.placeholderAm || currentQuestion.placeholder || "መልስዎን ይጻፉ…"
+                        )}
                         className="w-full rounded-xl border border-border bg-background px-4 py-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition resize-none"
                       />
                     )}
@@ -299,12 +331,16 @@ const Phase1Flow = () => {
             <div className="lg:col-span-1 flex flex-col gap-6">
               {summary && (
                 <div className="flex flex-col items-center gap-6 rounded-xl border border-border bg-card p-6">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Status</p>
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+                    {t("Status", "ሁኔታ")}
+                  </p>
                   <TrafficLight status={recommendationStatus} />
                   <p className="text-sm text-muted-foreground text-center">
-                    {recommendationStatus === "green" ? "Proceed" :
-                     recommendationStatus === "yellow" ? "Proceed with Caution" :
-                     "Reconsider"}
+                    {recommendationStatus === "green"
+                      ? t("Proceed", "ይቀጥሉ")
+                      : recommendationStatus === "yellow"
+                        ? t("Proceed with Caution", "በጥንቃቄ ይቀጥሉ")
+                        : t("Reconsider", "እንደገና ያስቡ")}
                   </p>
                 </div>
               )}
@@ -312,7 +348,9 @@ const Phase1Flow = () => {
               <div className="rounded-xl border border-border bg-card p-6 space-y-3">
                 <div className="flex items-center gap-2">
                   <Volume2 className="h-4 w-4 text-primary" />
-                  <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Voice Available</h3>
+                  <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+                    {t("Voice Available", "ድምጽ ይገኛል")}
+                  </h3>
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {t(
