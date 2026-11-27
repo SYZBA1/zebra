@@ -37,12 +37,17 @@ const Marketplace = () => {
     const load = async () => {
       const { data } = await supabase
         .from("marketplace_templates")
-        .select("id,title,description,sector,category,document_type,is_premium,price_cents,owner_name,owner_type,is_verified,rating,rating_count,summary,cover_image_url,created_at,review_status")
+        .select("id,title,description,sector,category,document_type,is_premium,price_cents,owner_name,owner_type,is_verified,rating,rating_count,summary,full_document,cover_image_url,created_at,review_status")
         .order("is_verified", { ascending: false })
         .order("rating", { ascending: false });
 
-      const visible = (data || []).filter((row: any) => isPublicMarketplaceTemplate(row));
-      setTemplates(visible as MarketTemplate[]);
+      const visible: MarketTemplate[] = (data || [])
+        .filter((row) => isPublicMarketplaceTemplate(row))
+        .map((row) => ({
+          ...row,
+          full_document: row.full_document ?? null,
+        }));
+      setTemplates(visible);
       setLoading(false);
     };
     load();

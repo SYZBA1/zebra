@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PHASE1_QUESTIONS } from "@/prompts/phase1Questions";
 import { PHASE1_SYSTEM_PROMPT } from "@/prompts/phase1SystemPrompt";
 import { getStoredStudioLanguage, setStoredStudioLanguage } from "@/lib/studio-language";
+import { getCanonicalOptionAnswer } from "@/lib/phase1-options";
 
 const TrafficLight = ({ status }: { status: "green" | "yellow" | "red" }) => (
   <div className="relative w-24 h-64 bg-card rounded-full shadow-2xl p-3 flex flex-col justify-center items-center gap-3 border border-border">
@@ -70,7 +71,10 @@ const Phase1Flow = () => {
     setTimeout(() => recognition.stop(), 30000);
   };
 
-  const handleAnswer = (value: string) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
+  const handleAnswer = (value: string) => {
+    const answer = getCanonicalOptionAnswer(currentQuestion, value);
+    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: answer }));
+  };
 
   const handleNext = () => {
     if (!answers[currentQuestion.id]?.trim()) {
@@ -127,15 +131,11 @@ const Phase1Flow = () => {
   };
 
   const handleLanguageToggle = () => {
+    const next = language === "en" ? "am" : "en";
+    setLanguage(next);
+    setStoredStudioLanguage(next);
     setLanguageFlip(true);
-    setTimeout(() => {
-      setLanguage((current) => {
-        const next = current === "en" ? "am" : "en";
-        setStoredStudioLanguage(next);
-        return next;
-      });
-      setLanguageFlip(false);
-    }, 300);
+    window.setTimeout(() => setLanguageFlip(false), 150);
   };
 
   return (
@@ -155,6 +155,8 @@ const Phase1Flow = () => {
         </div>
         <button
           onClick={handleLanguageToggle}
+          aria-label={t("Switch to Amharic", "Switch to English")}
+          aria-pressed={language === "am"}
           className={`flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground hover:bg-accent transition-all duration-300 ${languageFlip ? "scale-95 opacity-50" : "scale-100"}`}
         >
           <Languages className="h-3.5 w-3.5" />
@@ -249,7 +251,7 @@ const Phase1Flow = () => {
                           return (
                           <button key={option} type="button"
                             className={`rounded-lg px-4 py-3 text-left text-sm font-medium border transition-all ${
-                              answers[currentQuestion.id] === optionLabel
+                              getCanonicalOptionAnswer(currentQuestion, answers[currentQuestion.id] ?? "") === option
                                 ? "bg-primary/10 text-foreground border-primary"
                                 : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:bg-secondary"
                             }`}

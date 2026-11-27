@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createProject } from "@/lib/projects-api";
+import { createProject, listProjects, updateProject } from "@/lib/projects-api";
 import { useToast } from "@/hooks/use-toast";
 import { getStoredStudioLanguage, setStoredStudioLanguage } from "@/lib/studio-language";
 
@@ -27,6 +27,9 @@ const BusinessProposition = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [language, setLanguage] = useState<"en" | "am">(() => getStoredStudioLanguage());
   const [languageFlip, setLanguageFlip] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(
+    (location.state as { propositionId?: string } | null)?.propositionId ?? null,
+  );
   const [form, setForm] = useState<Record<FieldId, string>>({
     businessName:     phase1Answers.q1_sector ?? "",
     problemStatement: "",
@@ -39,16 +42,35 @@ const BusinessProposition = () => {
   const t = (en: string, am: string) => (language === "en" ? en : am);
 
   const handleLanguageToggle = () => {
+    const next = language === "en" ? "am" : "en";
+    setLanguage(next);
+    setStoredStudioLanguage(next);
     setLanguageFlip(true);
-    setTimeout(() => {
-      setLanguage((current) => {
-        const next = current === "en" ? "am" : "en";
-        setStoredStudioLanguage(next);
-        return next;
-      });
-      setLanguageFlip(false);
-    }, 300);
+    window.setTimeout(() => setLanguageFlip(false), 150);
   };
+
+  useEffect(() => {
+    const state = location.state as { proposition?: Record<string, string>; propositionId?: string } | null;
+    if (state?.proposition || projectId) return;
+
+    let active = true;
+    listProjects()
+      .then((projects) => {
+        if (!active) return;
+        const existing = projects.find((project) =>
+          project.deleted_at === null && project.document_type === "business_proposition",
+        );
+        if (!existing) return;
+        setProjectId(existing.id);
+        setForm((previous) => ({
+          ...previous,
+          ...(existing.contents as Record<FieldId, string>),
+        }));
+      })
+      .catch((error) => console.error("Failed to load existing business proposition:", error))
+
+    return () => { active = false; };
+  }, [location.state, projectId]);
 
   const handleChange = (id: FieldId, value: string) => setForm((prev) => ({ ...prev, [id]: value }));
 
@@ -59,7 +81,7 @@ const BusinessProposition = () => {
     }
     setIsSaving(true);
     try {
-      const project = await createProject({
+      const payload = {
         name: form.businessName,
         sector: phase1Answers.q1_sector || form.businessName,
         type: "proposition",
@@ -69,7 +91,10 @@ const BusinessProposition = () => {
         custom_titles: {},
         service_description: form.solution,
         phase1_answers: phase1Answers,
-      });
+      };
+      const project = projectId
+        ? await updateProject(projectId, payload)
+        : await createProject(payload);
       toast({ title: "Saved!", description: "Business Proposition saved. Redirecting to Studio…" });
       navigate("/studio", { state: { propositionId: project.id, proposition: form, phase1Answers } });
     } catch (err) {
@@ -95,6 +120,8 @@ const BusinessProposition = () => {
         </div>
         <button
           onClick={handleLanguageToggle}
+          aria-label={t("Switch to Amharic", "Switch to English")}
+          aria-pressed={language === "am"}
           className={`flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground hover:bg-accent transition-all duration-300 ${languageFlip ? "scale-95 opacity-50" : "scale-100"}`}
         >
           <Languages className="h-3.5 w-3.5" />
