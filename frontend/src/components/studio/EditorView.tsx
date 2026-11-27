@@ -308,8 +308,13 @@ const EditorView = ({ projectName, sector, serviceDescription, phase1Answers, do
       <div className="px-4 py-3 border-b border-sidebar-border">
         <div className="flex items-center justify-between mb-1">
           <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground truncate">{sector}</p>
-          <button onClick={() => changeLanguage(language === "en" ? "am" : "en")}
-            className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-accent transition-colors" title="Toggle language">
+          <button
+            onClick={() => changeLanguage(language === "en" ? "am" : "en")}
+            aria-label={language === "en" ? "Switch to Amharic" : "Switch to English"}
+            aria-pressed={language === "am"}
+            className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-accent transition-colors"
+            title="Toggle language"
+          >
             <Languages className="h-3 w-3" />{language === "en" ? "EN" : "አማ"}
           </button>
         </div>

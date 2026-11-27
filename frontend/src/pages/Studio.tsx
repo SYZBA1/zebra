@@ -476,7 +476,7 @@ const Studio = () => {
 
             {/* Business Proposition foundation banner */}
             {activeProposition && (
-              <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-start justify-between gap-3">
+              <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-mono uppercase tracking-widest text-primary mb-1">
                     {t("Active Business Proposition", "ንቁ ንግድ ሐሳብ")}
